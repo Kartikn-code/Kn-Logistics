@@ -1,0 +1,190 @@
+
+   <!DOCTYPE html>
+<html lang="en">
+<head>
+  <script async src="https://tally.so/widgets/embed.js"></script>
+    <meta charset="UTF-8">
+    <title>KN Logistics - Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f9f9f9;
+        }
+
+        header {
+            background-color: #003366;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 32px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .login-box {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            width: 300px;
+        }
+
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 10%;
+            padding: 10px;
+            margin: 20px;
+            margin-top: -30px;
+            background-color: #23deb2;
+            color: rgb(0, 0, 0);
+            border: none;
+            border-radius: 5px;
+            font-size: 17px;
+            cursor: pointer;
+            float: right;
+        }
+
+        button:hover {
+            background-color: #66cab5;
+        }
+
+        .blog-section {
+            max-width: 600px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.05);
+        }
+
+        .blog-section img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+
+        .blog-section h3 {
+            color: #003366;
+        }
+
+        .blog-section p {
+            line-height: 1.6;
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 10px;
+            color: red;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #003366;
+            color: white;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>KN Logistics</h1>
+    <p>Reliable. Fast. Everywhere.</p>
+
+
+      <button
+        data-tally-open="wz4v6a"
+        data-tally-layout="modal"
+        data-tally-emoji-text="👋"
+        data-tally-emoji-animation="wave"
+       >
+        Login
+      </button>
+
+</header>
+
+<!-- <div class="container">
+    <div class="login-box">
+        <h2>Client Login</h2>
+        <form onsubmit="return login(event)">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <div class="message" id="message"></div>
+    </div> -->
+
+    <div class="blog-section">
+        <img src="https://images.unsplash.com/photo-1584679109595-14a3fc78eb2d" alt="KN Logistics Truck">
+        <h3>Why KN Logistics is the #1 Choice for Cargo Transportation</h3>
+        <p>
+            KN Logistics has redefined the logistics industry with unmatched delivery speed, advanced GPS tracking, and a strong commitment to customer satisfaction.
+        </p>
+        <p>
+            <strong>Key Features:</strong>
+            <ul>
+                <li>✅ Real-time vehicle tracking</li>
+                <li>✅ Nationwide delivery coverage</li>
+                <li>✅ 24/7 customer support</li>
+                <li>✅ Eco-friendly fleet</li>
+            </ul>
+        </p>
+        <p><strong>Public Reviews:</strong></p>
+        <blockquote>
+            “Our business has never run smoother. KN Logistics delivers every time!” – <em>Ravi M., Retail Manager</em>
+        </blockquote>
+        <blockquote>
+            “Reliable and professional. Highly recommended for time-critical deliveries.” – <em>Priya S., Supply Chain Lead</em>
+        </blockquote>
+    </div>
+</div>
+
+<footer>
+    &copy; 2025 KN Logistics. All rights reserved.
+</footer>
+
+<script>
+    function login(event) {
+        event.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        // Simple demo logic
+        if (username === "client" && password === "logistics2025") {
+            document.getElementById("message").style.color = "green";
+            document.getElementById("message").textContent = "Login successful! Redirecting...";
+            setTimeout(() => {
+                window.location.href = "#"; // Replace with actual client dashboard URL
+            }, 1500);
+        } else {
+            document.getElementById("message").style.color = "red";
+            document.getElementById("message").textContent = "Incorrect username or password.";
+        }
+    }
+</script>
+
+</body>
+</html>
