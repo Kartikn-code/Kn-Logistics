@@ -221,8 +221,9 @@
 .comparisonCard {
     padding: 1.5rem;
     background: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
+    backdrop-filter: blur(10px);
 }
 
 .comparisonLabel {
@@ -238,6 +239,7 @@
     font-weight: 700;
     color: var(--color-primary);
     font-size: 1.1rem;
+    text-shadow: 0 0 10px var(--color-primary-glow);
 }
 
 .barTrack {
@@ -245,11 +247,12 @@
     height: 36px;
     border-radius: 8px;
     overflow: hidden;
-    background: #f0f0f0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
 }
 
 .barEarning {
-    background: linear-gradient(90deg, #27ae60, #2ecc71);
+    background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -261,7 +264,7 @@
 }
 
 .barExpense {
-    background: linear-gradient(90deg, #e74c3c, #c0392b);
+    background: linear-gradient(90deg, #b91c1c, #ef4444);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -280,220 +283,13 @@
     padding: 0 0.5rem;
 }
 
-/* Truck Earnings Chart */
+/* Recharts Container Wrapper */
 .chartCard {
     padding: 1.5rem;
     background: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
-}
-
-.truckChart {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.truckRow {
-    display: grid;
-    grid-template-columns: 200px 1fr 100px;
-    gap: 1rem;
-    align-items: center;
-    animation: fadeSlideIn 0.5s ease forwards;
-    opacity: 0;
-}
-
-@keyframes fadeSlideIn {
-    from {
-        opacity: 0;
-        transform: translateX(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.truckInfo {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.truckNumber {
-    font-weight: 700;
-    color: var(--color-text-primary);
-    font-size: 0.9rem;
-}
-
-.truckValues {
-    display: flex;
-    gap: 0.75rem;
-    font-size: 0.75rem;
-}
-
-.earning {
-    color: #27ae60;
-    font-weight: 600;
-}
-
-.expense {
-    color: #e74c3c;
-    font-weight: 500;
-}
-
-.truckBarWrapper {
-    position: relative;
-    height: 28px;
-    background: #f5f5f5;
-    border-radius: 6px;
-    overflow: hidden;
-}
-
-.truckBar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 50%;
-    background: linear-gradient(90deg, #27ae60, #2ecc71);
-    border-radius: 6px 6px 0 0;
-    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.truckBarExpense {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 50%;
-    background: linear-gradient(90deg, #e74c3c80, #c0392b80);
-    border-radius: 0 0 6px 6px;
-    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.truckProfit {
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-align: right;
-}
-
-.truckProfit[data-positive="true"] {
-    color: #27ae60;
-}
-
-.truckProfit[data-positive="false"] {
-    color: #e74c3c;
-}
-
-/* Monthly Chart */
-.monthlyChart {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 1rem 0;
-    min-height: 260px;
-}
-
-.monthColumn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.monthBars {
-    display: flex;
-    align-items: flex-end;
-    height: 200px;
-}
-
-.monthBarGroup {
-    display: flex;
-    gap: 3px;
-    align-items: flex-end;
-}
-
-.monthBarEarning {
-    width: 20px;
-    background: linear-gradient(180deg, #2ecc71, #27ae60);
-    border-radius: 4px 4px 0 0;
-    transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    cursor: pointer;
-    min-height: 0;
-}
-
-.monthBarEarning:hover {
-    filter: brightness(1.1);
-}
-
-.monthBarExpense {
-    width: 20px;
-    background: linear-gradient(180deg, #e74c3c, #c0392b);
-    border-radius: 4px 4px 0 0;
-    transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    cursor: pointer;
-    min-height: 0;
-}
-
-.monthBarExpense:hover {
-    filter: brightness(1.1);
-}
-
-.barValue {
-    position: absolute;
-    top: -22px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.6rem;
-    font-weight: 600;
-    white-space: nowrap;
-    color: var(--color-text-secondary);
-    pointer-events: none;
-}
-
-.monthLabel {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-/* Legend */
-.chartLegend {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-top: 1.25rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--color-border);
-}
-
-.legendItem {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.8rem;
-    color: var(--color-text-secondary);
-    font-weight: 500;
-}
-
-.legendDotEarning {
-    width: 10px;
-    height: 10px;
-    border-radius: 3px;
-    background: linear-gradient(135deg, #27ae60, #2ecc71);
-}
-
-.legendDotExpense {
-    width: 10px;
-    height: 10px;
-    border-radius: 3px;
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    backdrop-filter: blur(10px);
 }
 
 /* Empty State */

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Upload, Plus, RefreshCw, FileText, CheckCircle, AlertCircle, DollarSign } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
-import { createOrder, uploadOrders, uploadFinancialData, getOrders } from '../utils/api';
+import { createOrder, uploadOrders, uploadFinancialData, getOrders, resetDatabase } from '../utils/api';
 import styles from './Admin.module.css';
 
 const Admin = () => {
@@ -101,6 +101,24 @@ const Admin = () => {
             if (input) input.value = '';
         } catch (error) {
             setFinancialStatus({ type: 'error', message: 'Financial file upload failed.' });
+        }
+        setLoading(false);
+        setTimeout(() => setFinancialStatus(null), 5000);
+    };
+
+    const handleResetData = async () => {
+        if (!window.confirm("WARNING: Are you sure you want to delete ALL data permanently? This action cannot be undone.")) return;
+
+        const secondConfirm = window.confirm("Final check: Click 'OK' to PERMANENTLY erase the entire database.");
+        if (!secondConfirm) return;
+
+        setLoading(true);
+        try {
+            await resetDatabase();
+            setFinancialStatus({ type: 'success', message: 'All database records have been deleted.' });
+            fetchOrders();
+        } catch (error) {
+            setFinancialStatus({ type: 'error', message: 'Failed to reset database.' });
         }
         setLoading(false);
         setTimeout(() => setFinancialStatus(null), 5000);
@@ -271,6 +289,21 @@ const Admin = () => {
                                 {financialStatus.message}
                             </div>
                         )}
+
+                        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
+                            <h4 style={{ color: 'var(--color-danger)', marginBottom: '1rem', fontSize: '0.9rem', textTransform: 'uppercase' }}>Danger Zone</h4>
+                            <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                                This will permanently erase all dispatch, freight, and fleet tracking records from the database.
+                            </p>
+                            <Button
+                                variant="outline"
+                                onClick={handleResetData}
+                                disabled={loading}
+                                style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}
+                            >
+                                Delete All Data
+                            </Button>
+                        </div>
                     </Card>
                 </div>
 

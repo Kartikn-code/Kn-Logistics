@@ -4,11 +4,62 @@ import csv from 'csv-parser';
 import fs from 'fs';
 import XLSX from 'xlsx';
 import db from './database.js';
+import jwt from 'jsonwebtoken';
+import { authenticateToken } from './middleware/auth.js';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your_fallback_secret_key_here';
 
 const router = express.Router();
 
 // Configure Multer for file upload
 const upload = multer({ dest: 'uploads/' });
+
+// Apply authentication middleware to all routes except /login (handled inside the middleware)
+router.use(authenticateToken);
+
+// Authentication Endpoint
+router.post('/login', (req, res) => {
+    const { username, password } = req.body;
+
+    const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
+    db.get(sql, [username, password], (err, user) => {
+        if (err) {
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (user) {
+            // Sign JWT token
+            const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '24h' });
+            return res.json({ success: true, token });
+        }
+
+        res.status(401).json({ error: 'Invalid username or password' });
+    });
+});
+
+// Change Password Endpoint
+router.post('/change-password', (req, res) => {
+    const { username, oldPassword, newPassword } = req.body;
+
+    const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
+    db.get(sql, [username, oldPassword], (err, user) => {
+        if (err) {
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid current password' });
+        }
+
+        const updateSql = 'UPDATE users SET password = ? WHERE id = ?';
+        db.run(updateSql, [newPassword, user.id], function (err) {
+            if (err) {
+                return res.status(500).json({ error: 'Failed to update password' });
+            }
+            res.json({ success: true, message: 'Password updated successfully' });
+        });
+    });
+});
 
 // GET all active orders
 router.get('/orders', (req, res) => {
@@ -55,6 +106,31 @@ router.get('/orders/:id', (req, res) => {
         }
         res.json({ data: row });
     });
+});
+
+// DELETE multiple orders
+router.delete('/orders', async (req, res) => {
+    const { ids } = req.body; // Expecting an array of orderIds (e.g., ['KN-2024-001', 'KN-2024-002'])
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'No order IDs provided for deletion' });
+    }
+
+    const placeholders = ids.map(() => '?').join(',');
+    const sql = `DELETE FROM orders WHERE orderId IN (${placeholders})`;
+
+    try {
+        await new Promise((resolve, reject) => {
+            db.run(sql, ids, function (err) {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        res.json({ message: `Successfully deleted ${ids.length} orders.` });
+    } catch (err) {
+        console.error('Error bulk deleting orders:', err.message);
+        res.status(500).json({ error: 'Failed to delete orders' });
+    }
 });
 
 // CREATE a new order (Manual Entry)
@@ -441,6 +517,30 @@ router.delete('/analytics/filtered-records', async (req, res) => {
     } catch (err) {
         console.error('Error bulk deleting records:', err.message);
         res.status(500).json({ error: 'Failed to delete records' });
+    }
+});
+
+// Reset Entire Database (Orders and Dispatch Records)
+router.delete('/reset-database', async (req, res) => {
+    try {
+        await new Promise((resolve, reject) => {
+            db.run('DELETE FROM orders', function (err) {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        await new Promise((resolve, reject) => {
+            db.run('DELETE FROM dispatch_records', function (err) {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        res.json({ message: 'Database successfully cleared.' });
+    } catch (err) {
+        console.error('Error resetting database:', err.message);
+        res.status(500).json({ error: 'Failed to reset database.' });
     }
 });
 

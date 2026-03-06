@@ -3,10 +3,12 @@ import { Truck, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import styles from './Navbar.module.css';
 import clsx from 'clsx';
+import { useAuth } from '../../context/AuthContext';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const { isAuthenticated, logout } = useAuth();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -19,9 +21,10 @@ const Navbar = () => {
     const navLinks = [
         { name: 'Home', path: '/' },
         { name: 'Services', path: '/services' },
-        { name: 'Live Tracking', path: '/tracking' },
-        { name: 'Dashboard', path: '/dashboard' },
-        { name: 'Admin', path: '/admin' },
+        ...(isAuthenticated ? [
+            { name: 'Dashboard', path: '/dashboard' },
+            { name: 'Admin', path: '/admin' }
+        ] : []),
         { name: 'Contact', path: '/contact' },
     ];
 
@@ -44,6 +47,15 @@ const Navbar = () => {
                             {link.name}
                         </NavLink>
                     ))}
+                    {isAuthenticated ? (
+                        <button onClick={logout} className={`${styles.navLink} ${styles.logoutBtn}`}>
+                            Logout
+                        </button>
+                    ) : (
+                        <NavLink to="/login" className={({ isActive }) => clsx(styles.navLink, isActive && styles.active)}>
+                            Admin Login
+                        </NavLink>
+                    )}
                 </div>
 
                 {/* Mobile Menu Toggle */}
@@ -67,6 +79,22 @@ const Navbar = () => {
                             {link.name}
                         </NavLink>
                     ))}
+                    {isAuthenticated ? (
+                        <button
+                            onClick={() => { logout(); setIsOpen(false); }}
+                            className={`${styles.mobileNavLink} ${styles.logoutBtnMobile}`}
+                        >
+                            Logout
+                        </button>
+                    ) : (
+                        <NavLink
+                            to="/login"
+                            className={({ isActive }) => clsx(styles.mobileNavLink, isActive && styles.active)}
+                            onClick={() => setIsOpen(false)}
+                        >
+                            Admin Login
+                        </NavLink>
+                    )}
                 </div>
             </div>
         </nav>

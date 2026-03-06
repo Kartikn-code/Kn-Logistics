@@ -12,9 +12,11 @@
 }
 
 .scrolled {
-    background-color: rgba(15, 23, 42, 0.9);
-    backdrop-filter: blur(10px);
-    box-shadow: var(--shadow-sm);
+    background-color: rgba(15, 16, 21, 0.85);
+    /* Deep dark blur */
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid var(--glass-border);
     height: 60px;
 }
 
@@ -47,28 +49,21 @@
 
 .navLink {
     color: var(--color-text-secondary);
-    font-weight: 500;
-    transition: color var(--transition-fast);
-    position: relative;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
 }
 
 .navLink:hover {
     color: var(--color-text-primary);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .navLink.active {
-    color: var(--color-accent);
-}
-
-.navLink.active::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: var(--color-accent);
-    border-radius: 2px;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    box-shadow: 0 4px 15px var(--color-primary-glow);
 }
 
 .menuToggle {

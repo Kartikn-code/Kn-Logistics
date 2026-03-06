@@ -123,6 +123,14 @@ const createTables = async () => {
             )
         `);
 
+        await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS users (
+                id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL
+            )
+        `);
+
         if (dbWrapper.type === 'sqlite') {
             try {
                 await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN fuelCost DECIMAL(15, 2) DEFAULT 0;`);
@@ -131,6 +139,16 @@ const createTables = async () => {
                 await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN driverFee DECIMAL(15, 2) DEFAULT 0;`);
             } catch (err) { /* column exists */ }
         }
+
+        // Seed admin user if it doesn't exist
+        const adminUser = process.env.ADMIN_USER || 'admin';
+        const adminPass = process.env.ADMIN_PASS || 'admin123';
+
+        await dbWrapper.run(`
+            INSERT INTO users (username, password)
+            SELECT ?, ?
+            WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = ?)
+        `, [adminUser, adminPass, adminUser]);
 
         console.log("Database tables initialized successfully.");
     } catch (err) {

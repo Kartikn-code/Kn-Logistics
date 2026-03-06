@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { LayoutDashboard, Truck, Package, Route, Activity, TrendingUp, TrendingDown, DollarSign, IndianRupee, CalendarDays, Filter, Search, Trash2, Edit2, Check, X as XIcon } from 'lucide-react';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { getDashboardStats, getAnnualSummary, getTruckEarnings, getMonthlyEarnings, getFilteredRecords, deleteDispatchRecords, updateDispatchRecord } from '../utils/api';
@@ -402,49 +403,45 @@ const Dashboard = () => {
                     )}
                 </section>
 
-                {/* Truck-based Earnings */}
+                {/* Truck-based Earnings via Recharts Bar Chart */}
                 <section className={styles.section}>
                     <h2 className={styles.sectionTitle}>
                         <Truck size={22} />
-                        Truck-wise Earnings
+                        Truck-wise Margins
                     </h2>
                     {truckData.length > 0 ? (
                         <Card className={styles.chartCard}>
-                            <div className={styles.truckChart}>
-                                {truckData.map((truck, index) => (
-                                    <div key={truck.truckNumber} className={styles.truckRow} style={{ animationDelay: `${index * 0.08}s` }}>
-                                        <div className={styles.truckInfo}>
-                                            <span className={styles.truckNumber}>{truck.truckNumber}</span>
-                                            <div className={styles.truckValues}>
-                                                <span className={styles.earning}>{formatCurrency(truck.earnings)}</span>
-                                                <span className={styles.expense}>-{formatCurrency(truck.expenses)}</span>
-                                            </div>
-                                        </div>
-                                        <div className={styles.truckBarWrapper}>
-                                            <div
-                                                className={styles.truckBar}
-                                                style={{
-                                                    width: loaded ? `${(truck.earnings / maxTruckEarning) * 100}%` : '0%',
-                                                    animationDelay: `${index * 0.08}s`
-                                                }}
-                                            />
-                                            <div
-                                                className={styles.truckBarExpense}
-                                                style={{
-                                                    width: loaded ? `${(truck.expenses / maxTruckEarning) * 100}%` : '0%',
-                                                    animationDelay: `${index * 0.08 + 0.15}s`
-                                                }}
-                                            />
-                                        </div>
-                                        <span className={styles.truckProfit} data-positive={truck.profit >= 0}>
-                                            {truck.profit >= 0 ? '+' : ''}{formatCurrency(truck.profit)}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className={styles.chartLegend}>
-                                <span className={styles.legendItem}><span className={styles.legendDotEarning} /> Revenue (Freight+Load+Unload+Halt)</span>
-                                <span className={styles.legendItem}><span className={styles.legendDotExpense} /> Operating Costs (Fuel+Driver)</span>
+                            <div style={{ width: '100%', height: 350 }}>
+                                <ResponsiveContainer>
+                                    <BarChart
+                                        data={truckData}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                        <XAxis dataKey="truckNumber" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                                        <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} tickFormatter={(val) => `₹${val / 1000}k`} />
+                                        <RechartsTooltip
+                                            contentStyle={{ backgroundColor: 'rgba(15, 16, 21, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
+                                            itemStyle={{ color: '#fff' }}
+                                            formatter={(value) => formatCurrency(value)}
+                                        />
+                                        <Legend />
+                                        <Bar dataKey="earnings" name="Revenue" fill="url(#colorRevenue)" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="expenses" name="Costs" fill="url(#colorCosts)" radius={[4, 4, 0, 0]} />
+
+                                        <defs>
+                                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.9} />
+                                                <stop offset="95%" stopColor="#0284c7" stopOpacity={0.7} />
+                                            </linearGradient>
+                                            <linearGradient id="colorCosts" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.9} />
+                                                <stop offset="95%" stopColor="#b91c1c" stopOpacity={0.7} />
+                                            </linearGradient>
+                                        </defs>
+
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
                         </Card>
                     ) : (
@@ -455,52 +452,43 @@ const Dashboard = () => {
                     )}
                 </section>
 
-                {/* Monthly Earnings Chart */}
+                {/* Monthly Earnings Recharts Area Chart */}
                 <section className={styles.section}>
                     <h2 className={styles.sectionTitle}>
                         <CalendarDays size={22} />
-                        Month-wise Earnings & Expenses
+                        Financial Trajectory
                         <span className={styles.yearBadge}>{selectedYear}</span>
                     </h2>
                     <Card className={styles.chartCard}>
-                        <div className={styles.monthlyChart}>
-                            {monthlyData.map((month, index) => (
-                                <div key={month.month} className={styles.monthColumn}>
-                                    <div className={styles.monthBars}>
-                                        <div className={styles.monthBarGroup}>
-                                            <div
-                                                className={styles.monthBarEarning}
-                                                style={{
-                                                    height: loaded ? `${(month.earnings / maxMonthValue) * 180}px` : '0px',
-                                                    animationDelay: `${index * 0.06}s`
-                                                }}
-                                                title={`Earnings: ${formatCurrency(month.earnings)}`}
-                                            >
-                                                {month.earnings > 0 && (
-                                                    <span className={styles.barValue}>{formatCurrency(month.earnings)}</span>
-                                                )}
-                                            </div>
-                                            <div
-                                                className={styles.monthBarExpense}
-                                                style={{
-                                                    height: loaded ? `${(month.expenses / maxMonthValue) * 180}px` : '0px',
-                                                    animationDelay: `${index * 0.06 + 0.1}s`
-                                                }}
-                                                title={`Expenses: ${formatCurrency(month.expenses)}`}
-                                            >
-                                                {month.expenses > 0 && (
-                                                    <span className={styles.barValue}>{formatCurrency(month.expenses)}</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span className={styles.monthLabel}>{month.monthName}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className={styles.chartLegend}>
-                            <span className={styles.legendItem}><span className={styles.legendDotEarning} /> Revenue</span>
-                            <span className={styles.legendItem}><span className={styles.legendDotExpense} /> Operating Costs</span>
+                        <div style={{ width: '100%', height: 400 }}>
+                            <ResponsiveContainer>
+                                <AreaChart
+                                    data={monthlyData}
+                                    margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
+                                >
+                                    <defs>
+                                        <linearGradient id="colorEarningsPhase" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.6} />
+                                            <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="colorExpensePhase" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
+                                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="monthName" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                                    <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} tickFormatter={(val) => `₹${val / 1000}k`} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <RechartsTooltip
+                                        contentStyle={{ backgroundColor: 'rgba(15, 16, 21, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
+                                        formatter={(value) => formatCurrency(value)}
+                                        labelStyle={{ color: '#94a3b8', marginBottom: '8px' }}
+                                    />
+                                    <Legend />
+                                    <Area type="monotone" dataKey="earnings" name="Revenue" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorEarningsPhase)" activeDot={{ r: 6, fill: '#0ea5e9', stroke: '#fff', strokeWidth: 2 }} />
+                                    <Area type="monotone" dataKey="expenses" name="Costs" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorExpensePhase)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
                     </Card>
                 </section>
