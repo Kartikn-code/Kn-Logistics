@@ -153,3 +153,31 @@ export const getFilteredRecords = async (params) => {
         return [];
     }
 };
+
+export const updateDispatchRecord = async (id, data) => {
+    try {
+        const response = await fetch(`${API_URL}/analytics/record/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating record:', error);
+        throw error;
+    }
+};
+
+export const deleteDispatchRecords = async (ids) => {
+    try {
+        const response = await fetch(`${API_URL}/analytics/filtered-records`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error bulk deleting records:', error);
+        throw error;
+    }
+};

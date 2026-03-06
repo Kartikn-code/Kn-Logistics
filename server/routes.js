@@ -366,10 +366,82 @@ router.get('/analytics/filtered-records', (req, res) => {
 
     db.all(sql, params, (err, rows) => {
         if (err) {
-            return res.status(500).json({ error: err.message });
+            console.error('Error fetching filtered records:', err.message);
+            return res.status(500).json({ error: 'Failed to fetch filtered records' });
         }
         res.json({ data: rows });
     });
+});
+
+// Update a single dispatch record (Inline Edit)
+router.put('/analytics/record/:id', async (req, res) => {
+    const { id } = req.params;
+    const { dispatchDate, truckNo, sourceLocation, finalDestination, tons, freight, loading, unloading, halt, fuelCost, driverFee } = req.body;
+
+    const total = Number(freight) + Number(loading) + Number(unloading) + Number(halt);
+
+    const checkSql = `SELECT * FROM dispatch_records WHERE id = ?`;
+    const updateSql = `
+        UPDATE dispatch_records
+        SET dispatchDate = ?, truckNo = ?, sourceLocation = ?, finalDestination = ?,
+            tons = ?, freight = ?, loading = ?, unloading = ?, halt = ?,
+            fuelCost = ?, driverFee = ?, total = ?
+        WHERE id = ?
+    `;
+
+    try {
+        const records = await new Promise((resolve, reject) => {
+            db.all(checkSql, [id], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+
+        if (records.length === 0) {
+            return res.status(404).json({ error: 'Record not found' });
+        }
+
+        await new Promise((resolve, reject) => {
+            db.run(updateSql, [
+                dispatchDate, truckNo, sourceLocation, finalDestination,
+                tons, freight, loading, unloading, halt,
+                fuelCost, driverFee, total, id
+            ], function (err) {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        res.json({ message: 'Record updated successfully', id, total });
+    } catch (err) {
+        console.error('Error updating record:', err.message);
+        res.status(500).json({ error: 'Failed to update record' });
+    }
+});
+
+// Bulk Delete Dispatch Records
+router.delete('/analytics/filtered-records', async (req, res) => {
+    const { ids } = req.body; // Expecting an array of IDs
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'No record IDs provided for deletion' });
+    }
+
+    const placeholders = ids.map(() => '?').join(',');
+    const sql = `DELETE FROM dispatch_records WHERE id IN (${placeholders})`;
+
+    try {
+        await new Promise((resolve, reject) => {
+            db.run(sql, ids, function (err) {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        res.json({ message: `Successfully deleted ${ids.length} records.` });
+    } catch (err) {
+        console.error('Error bulk deleting records:', err.message);
+        res.status(500).json({ error: 'Failed to delete records' });
+    }
 });
 
 export default router;
