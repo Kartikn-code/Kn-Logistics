@@ -1,0 +1,231 @@
+.trackingPage {
+    min-height: 100vh;
+}
+
+.header {
+    background-color: var(--color-secondary);
+    color: white;
+    padding: 6rem 0 3rem 0;
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.section {
+    padding: 4rem 0;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    width: 90%;
+    max-width: 800px;
+}
+
+.trackingCard {
+    padding: 3rem;
+    min-height: 400px;
+}
+
+.searchForm {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+.input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    border-color: var(--color-accent);
+}
+
+.result {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.statusHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.statusHeader h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--color-text-primary);
+}
+
+.timestamp {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-top: 0.25rem;
+}
+
+.statusBadge {
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.loading {
+    background-color: #fce8bd40;
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning);
+}
+
+.intransit {
+    background-color: #d6eaf840;
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+}
+
+.neardestination {
+    background-color: #d1f2eb40;
+    color: #16a085;
+    border: 1px solid #16a085;
+}
+
+.delivered {
+    background-color: #d5f5e340;
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
+}
+
+.detailsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.detailItem {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.detailItem svg {
+    color: var(--color-secondary);
+    margin-top: 2px;
+}
+
+.detailItem label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.detailItem p {
+    font-weight: 500;
+}
+
+/* Progress */
+.progressBar {
+    position: relative;
+    padding-top: 1rem;
+}
+
+.progressLine {
+    height: 4px;
+    background-color: #eee;
+    border-radius: 2px;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background-color: var(--color-success);
+    transition: width 1s ease;
+}
+
+.steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #ccc;
+    flex: 1;
+    position: relative;
+}
+
+/* .step::before {
+    Custom vertical lines if needed, but handled by progressLine for horizontal
+} */
+
+.dot {
+    width: 20px;
+    height: 20px;
+    background-color: var(--color-bg-secondary);
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    position: absolute;
+    top: -2.2rem;
+}
+
+.completed {
+    color: var(--color-text-primary);
+}
+
+.completed .dot {
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: 4rem 0;
+}
+
+@media (max-width: 600px) {
+    .searchForm {
+        flex-direction: column;
+    }
+
+    .detailsGrid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}

@@ -1,0 +1,33 @@
+.reveal {
+    opacity: 0;
+    will-change: transform, opacity;
+    transition-property: opacity, transform;
+    transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.visible {
+    opacity: 1;
+    transform: none;
+}
+
+/* Variants */
+.fade-up {
+    transform: translateY(30px);
+}
+
+.fade-in {
+    transform: translateY(0);
+    /* Just opacity change */
+}
+
+.scale {
+    transform: scale(0.95);
+}
+
+.slide-right {
+    transform: translateX(-30px);
+}
+
+.slide-left {
+    transform: translateX(30px);
+}

@@ -1,0 +1,648 @@
+.dashboardPage {
+    min-height: 100vh;
+    padding-top: 4rem;
+    background-color: var(--color-bg-primary);
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-bottom: 4rem;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.headerLeft h1 {
+    font-size: 2rem;
+    color: var(--color-text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.headerLeft p {
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+}
+
+.yearSelector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+}
+
+.yearSelector select {
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    outline: none;
+}
+
+/* Fleet Status Grid */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+
+.statCard {
+    background: var(--color-bg-secondary);
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.statHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.iconBox {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveBadge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-success);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: rgba(39, 174, 96, 0.1);
+    padding: 4px 8px;
+    border-radius: 12px;
+}
+
+.pulse {
+    width: 6px;
+    height: 6px;
+    background-color: var(--color-success);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+
+    70% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+}
+
+.statContent h3 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.statContent p {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Sections */
+.section {
+    margin-bottom: 2.5rem;
+}
+
+.sectionTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.35rem;
+    color: var(--color-text-primary);
+    margin-bottom: 1.25rem;
+    font-weight: 700;
+}
+
+.yearBadge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    margin-left: 0.5rem;
+}
+
+/* Financial Summary Cards */
+.financialGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.financeCard {
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.financeCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+}
+
+.financeCardInner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.financeIcon {
+    opacity: 0.85;
+    flex-shrink: 0;
+}
+
+.financeLabel {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.financeValue {
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1.1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.negativeBadge {
+    font-size: 0.65rem;
+    background: rgba(255, 255, 255, 0.25);
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* Comparison Bar */
+.comparisonCard {
+    padding: 1.5rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.comparisonLabel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.ratio {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: 1.1rem;
+}
+
+.barTrack {
+    display: flex;
+    height: 36px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f0f0f0;
+}
+
+.barEarning {
+    background: linear-gradient(90deg, #27ae60, #2ecc71);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 0;
+}
+
+.barExpense {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 0;
+}
+
+.barEarning span,
+.barExpense span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 0.5rem;
+}
+
+/* Truck Earnings Chart */
+.chartCard {
+    padding: 1.5rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.truckChart {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.truckRow {
+    display: grid;
+    grid-template-columns: 200px 1fr 100px;
+    gap: 1rem;
+    align-items: center;
+    animation: fadeSlideIn 0.5s ease forwards;
+    opacity: 0;
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.truckInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.truckNumber {
+    font-weight: 700;
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+}
+
+.truckValues {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+}
+
+.earning {
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.expense {
+    color: #e74c3c;
+    font-weight: 500;
+}
+
+.truckBarWrapper {
+    position: relative;
+    height: 28px;
+    background: #f5f5f5;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.truckBar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 50%;
+    background: linear-gradient(90deg, #27ae60, #2ecc71);
+    border-radius: 6px 6px 0 0;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.truckBarExpense {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 50%;
+    background: linear-gradient(90deg, #e74c3c80, #c0392b80);
+    border-radius: 0 0 6px 6px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.truckProfit {
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-align: right;
+}
+
+.truckProfit[data-positive="true"] {
+    color: #27ae60;
+}
+
+.truckProfit[data-positive="false"] {
+    color: #e74c3c;
+}
+
+/* Monthly Chart */
+.monthlyChart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 1rem 0;
+    min-height: 260px;
+}
+
+.monthColumn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.monthBars {
+    display: flex;
+    align-items: flex-end;
+    height: 200px;
+}
+
+.monthBarGroup {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+}
+
+.monthBarEarning {
+    width: 20px;
+    background: linear-gradient(180deg, #2ecc71, #27ae60);
+    border-radius: 4px 4px 0 0;
+    transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+    min-height: 0;
+}
+
+.monthBarEarning:hover {
+    filter: brightness(1.1);
+}
+
+.monthBarExpense {
+    width: 20px;
+    background: linear-gradient(180deg, #e74c3c, #c0392b);
+    border-radius: 4px 4px 0 0;
+    transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+    min-height: 0;
+}
+
+.monthBarExpense:hover {
+    filter: brightness(1.1);
+}
+
+.barValue {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--color-text-secondary);
+    pointer-events: none;
+}
+
+.monthLabel {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Legend */
+.chartLegend {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.legendDotEarning {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+.legendDotExpense {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+/* Empty State */
+.emptyCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+    gap: 1rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.emptyCard p {
+    max-width: 400px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Filter Form & Table */
+.filterCard {
+    padding: 1.5rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.filterForm {
+    margin-bottom: 2rem;
+}
+
+.formRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 150px;
+}
+
+.formGroup label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.formGroup input,
+.formGroup select {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+    border-color: var(--color-primary);
+}
+
+.formActions {
+    display: flex;
+    padding-bottom: 0px;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.table th,
+.table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    font-size: 0.95rem;
+}
+
+.table th {
+    background: var(--color-bg-primary);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .truckRow {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .truckProfit {
+        text-align: left;
+    }
+
+    .monthlyChart {
+        overflow-x: auto;
+        justify-content: flex-start;
+    }
+
+    .monthColumn {
+        min-width: 45px;
+    }
+
+    .financeValue {
+        font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .financialGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
