@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Truck, Package, Route, Activity, TrendingUp, TrendingDown, DollarSign, IndianRupee, CalendarDays, Filter, Search } from 'lucide-react';
+import { LayoutDashboard, Truck, Package, Route, Activity, TrendingUp, TrendingDown, DollarSign, IndianRupee, CalendarDays, Filter, Search, Trash2, Edit2, Check, X as XIcon } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
-import { getDashboardStats, getAnnualSummary, getTruckEarnings, getMonthlyEarnings, getFilteredRecords } from '../utils/api';
+import { getDashboardStats, getAnnualSummary, getTruckEarnings, getMonthlyEarnings, getFilteredRecords, deleteDispatchRecords, updateDispatchRecord } from '../utils/api';
 import styles from './Dashboard.module.css';
 
 const formatCurrency = (val) => {
@@ -25,6 +25,11 @@ const Dashboard = () => {
     const [monthlyData, setMonthlyData] = useState([]);
     const [filteredRecords, setFilteredRecords] = useState([]);
     const [isFiltering, setIsFiltering] = useState(false);
+
+    // Table Action State
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [editingId, setEditingId] = useState(null);
+    const [editForm, setEditForm] = useState({});
 
     // Filter State
     const [filters, setFilters] = useState({
@@ -68,9 +73,57 @@ const Dashboard = () => {
     const handleFilterSubmit = async (e) => {
         if (e) e.preventDefault();
         setIsFiltering(true);
+        setSelectedIds([]); // Clear selection when fetching new data
+        setEditingId(null);
         const data = await getFilteredRecords(filters);
         setFilteredRecords(data);
         setIsFiltering(false);
+    };
+
+    // --- Action Handlers --- //
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedIds(filteredRecords.map(r => r.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleSelectOne = (id) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} records?`)) return;
+        try {
+            await deleteDispatchRecords(selectedIds);
+            // Refresh table
+            handleFilterSubmit();
+        } catch (error) {
+            alert("Failed to delete records");
+        }
+    };
+
+    const startEditing = (record) => {
+        setEditingId(record.id);
+        setEditForm({ ...record });
+    };
+
+    const handleEditChange = (e) => {
+        const { name, value } = e.target;
+        setEditForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const saveEdit = async () => {
+        try {
+            await updateDispatchRecord(editingId, editForm);
+            setEditingId(null);
+            handleFilterSubmit(); // Refresh to catch new totals
+        } catch (error) {
+            alert("Failed to update record");
+        }
     };
 
     const currentYearData = annualData.length > 0 ? annualData[0] : { totalEarnings: 0, totalExpenses: 0, netProfit: 0, totalTrips: 0 };
@@ -169,18 +222,34 @@ const Dashboard = () => {
                             </div>
                         </form>
 
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ fontSize: '1rem', color: 'var(--color-primary)' }}>Results ({filteredRecords.length})</h3>
+                            {selectedIds.length > 0 && (
+                                <Button variant="danger" size="sm" onClick={handleBulkDelete}>
+                                    <Trash2 size={16} /> Delete Selected ({selectedIds.length})
+                                </Button>
+                            )}
+                        </div>
+
                         <div className={styles.tableWrapper}>
                             <table className={styles.table}>
                                 <thead>
                                     <tr>
+                                        <th style={{ width: '40px' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.length === filteredRecords.length && filteredRecords.length > 0}
+                                                onChange={handleSelectAll}
+                                            />
+                                        </th>
                                         <th>Date</th>
                                         <th>Truck No</th>
                                         <th>Source</th>
                                         <th>Destination</th>
                                         <th>Tons</th>
                                         <th>Revenue</th>
-                                        <th>Expenses</th>
-                                        <th>Profit</th>
+                                        <th>Costs</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -191,17 +260,62 @@ const Dashboard = () => {
                                             const revenue = record.freight + record.loading + record.unloading + record.halt;
                                             const expenses = record.fuelCost + record.driverFee;
                                             return (
-                                                <tr key={record.id}>
-                                                    <td>{record.dispatchDate}</td>
-                                                    <td>{record.truckNo}</td>
-                                                    <td>{record.sourceLocation}</td>
-                                                    <td>{record.finalDestination}</td>
-                                                    <td>{record.tons}</td>
-                                                    <td>{formatCurrency(revenue)}</td>
-                                                    <td>{formatCurrency(expenses)}</td>
-                                                    <td style={{ color: (revenue - expenses) >= 0 ? '#27ae60' : '#e74c3c', fontWeight: 'bold' }}>
-                                                        {formatCurrency(revenue - expenses)}
+                                                <tr key={record.id} className={selectedIds.includes(record.id) ? styles.selectedRow : ''}>
+                                                    <td>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedIds.includes(record.id)}
+                                                            onChange={() => handleSelectOne(record.id)}
+                                                        />
                                                     </td>
+                                                    {editingId === record.id ? (
+                                                        <>
+                                                            <td><input type="date" name="dispatchDate" value={editForm.dispatchDate || ''} onChange={handleEditChange} className={styles.editInput} /></td>
+                                                            <td><input type="text" name="truckNo" value={editForm.truckNo || ''} onChange={handleEditChange} className={styles.editInput} /></td>
+                                                            <td><input type="text" name="sourceLocation" value={editForm.sourceLocation || ''} onChange={handleEditChange} className={styles.editInput} /></td>
+                                                            <td><input type="text" name="finalDestination" value={editForm.finalDestination || ''} onChange={handleEditChange} className={styles.editInput} /></td>
+                                                            <td><input type="number" name="tons" value={editForm.tons || ''} onChange={handleEditChange} className={styles.editInput} style={{ width: '60px' }} /></td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
+                                                                    <input type="number" name="freight" placeholder="Freight" value={editForm.freight || ''} onChange={handleEditChange} className={styles.editInput} />
+                                                                    <input type="number" name="loading" placeholder="Load/Unld" value={editForm.loading || ''} onChange={handleEditChange} className={styles.editInput} />
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
+                                                                    <input type="number" name="fuelCost" placeholder="Fuel" value={editForm.fuelCost || ''} onChange={handleEditChange} className={styles.editInput} />
+                                                                    <input type="number" name="driverFee" placeholder="Driver" value={editForm.driverFee || ''} onChange={handleEditChange} className={styles.editInput} />
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', gap: '5px' }}>
+                                                                    <button onClick={saveEdit} className={styles.actionBtnSuccess}><Check size={16} /></button>
+                                                                    <button onClick={() => setEditingId(null)} className={styles.actionBtnDanger}><XIcon size={16} /></button>
+                                                                </div>
+                                                            </td>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <td>{record.dispatchDate}</td>
+                                                            <td>{record.truckNo}</td>
+                                                            <td>{record.sourceLocation}</td>
+                                                            <td>{record.finalDestination}</td>
+                                                            <td>{record.tons}</td>
+                                                            <td>
+                                                                <div>{formatCurrency(revenue)}</div>
+                                                                <small style={{ color: 'var(--color-text-secondary)' }}>F:{record.freight}</small>
+                                                            </td>
+                                                            <td>
+                                                                <div>{formatCurrency(expenses)}</div>
+                                                                <small style={{ color: 'var(--color-text-secondary)' }}>Fuel:{record.fuelCost}</small>
+                                                            </td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                                    <button onClick={() => startEditing(record)} className={styles.iconBtn} title="Edit"><Edit2 size={16} /></button>
+                                                                </div>
+                                                            </td>
+                                                        </>
+                                                    )}
                                                 </tr>
                                             )
                                         })

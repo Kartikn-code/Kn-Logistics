@@ -603,8 +603,71 @@
     letter-spacing: 0.5px;
 }
 
+.table tr.selectedRow {
+    background-color: rgba(255, 112, 67, 0.08);
+}
+
 .table tr:last-child td {
     border-bottom: none;
+}
+
+/* Table Edit Actions & Inputs */
+.editInput {
+    width: 100%;
+    padding: 0.4rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+}
+
+.editInput:focus {
+    border-color: var(--color-primary);
+}
+
+.iconBtn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.iconBtn:hover {
+    color: var(--color-primary);
+    background: rgba(216, 67, 21, 0.1);
+}
+
+.actionBtnSuccess,
+.actionBtnDanger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    border: none;
+    color: white;
+    transition: opacity 0.2s ease;
+}
+
+.actionBtnSuccess {
+    background: var(--color-success);
+}
+
+.actionBtnDanger {
+    background: var(--color-danger);
+}
+
+.actionBtnSuccess:hover,
+.actionBtnDanger:hover {
+    opacity: 0.85;
 }
 
 /* Responsive */

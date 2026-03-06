@@ -1,11 +1,12 @@
 @import './styles/variables.css';
 
 :root {
-  font-family: var(--font-primary);
+  font-family: var(--font-primary), 'Quicksand', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light;
+  color-scheme: dark;
+  /* Force dark context for browser defaults */
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
 
@@ -32,6 +33,7 @@ body {
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -39,8 +41,8 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-secondary);
-  border-radius: 4px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
