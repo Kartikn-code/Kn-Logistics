@@ -43,16 +43,59 @@ const initializeDatabase = async () => {
             return query.replace(/\?/g, () => `$${i++}`);
         };
 
-        dbWrapper.run = async (query, params = []) => {
-            await dbWrapper.pool.query(pgFormat(query), params);
+        dbWrapper.run = async (query, params = [], callback) => {
+            if (typeof params === 'function') {
+                callback = params;
+                params = [];
+            }
+            try {
+                // To mimic sqlite's this.lastID, we'll try to append RETURNING id to INSERTs
+                let modifiedQuery = pgFormat(query);
+                if (modifiedQuery.trim().toUpperCase().startsWith('INSERT') && !modifiedQuery.toUpperCase().includes('RETURNING')) {
+                    modifiedQuery += ' RETURNING id';
+                }
+
+                const res = await dbWrapper.pool.query(modifiedQuery, params);
+
+                // Create a fake Context object for callbacks that expect `this.lastID` (like sqlite do)
+                const mockContext = {
+                    lastID: res.rows && res.rows.length > 0 ? res.rows[0].id : null,
+                    changes: res.rowCount
+                };
+
+                if (callback) callback.call(mockContext, null, res);
+            } catch (err) {
+                if (callback) callback(err);
+                else throw err;
+            }
         };
-        dbWrapper.all = async (query, params = []) => {
-            const res = await dbWrapper.pool.query(pgFormat(query), params);
-            return res.rows;
+        dbWrapper.all = async (query, params = [], callback) => {
+            if (typeof params === 'function') {
+                callback = params;
+                params = [];
+            }
+            try {
+                const res = await dbWrapper.pool.query(pgFormat(query), params);
+                if (callback) callback(null, res.rows);
+                return res.rows;
+            } catch (err) {
+                if (callback) callback(err);
+                else throw err;
+            }
         };
-        dbWrapper.get = async (query, params = []) => {
-            const res = await dbWrapper.pool.query(pgFormat(query), params);
-            return res.rows[0];
+        dbWrapper.get = async (query, params = [], callback) => {
+            if (typeof params === 'function') {
+                callback = params;
+                params = [];
+            }
+            try {
+                const res = await dbWrapper.pool.query(pgFormat(query), params);
+                if (callback) callback(null, res.rows[0]);
+                return res.rows[0];
+            } catch (err) {
+                if (callback) callback(err);
+                else throw err;
+            }
         };
 
     } else {
@@ -192,20 +235,40 @@ initializeDatabase();
 
 // Export the generic wrapper
 const db = {
-    run: (q, p, cb) => {
+    run: function (q, p, cb) {
+        if (typeof p === 'function') {
+            cb = p;
+            p = [];
+        }
         dbWrapper.run(q, p)
-            .then(res => cb(null, res))
-            .catch(err => cb(err, null));
+            .then(res => {
+                if (cb) {
+                    if (dbWrapper.type === 'sqlite') {
+                        cb.call(res, null); // res is 'this' context for sqlite
+                    } else {
+                        cb.call(res, null); // We mock the context for postgres inside dbWrapper.run
+                    }
+                }
+            })
+            .catch(err => { if (cb) cb.call(this, err); });
     },
-    all: (q, p, cb) => {
+    all: function (q, p, cb) {
+        if (typeof p === 'function') {
+            cb = p;
+            p = [];
+        }
         dbWrapper.all(q, p)
-            .then(rows => cb(null, rows))
-            .catch(err => cb(err, null));
+            .then(rows => { if (cb) cb(null, rows); })
+            .catch(err => { if (cb) cb(err, null); });
     },
-    get: (q, p, cb) => {
+    get: function (q, p, cb) {
+        if (typeof p === 'function') {
+            cb = p;
+            p = [];
+        }
         dbWrapper.get(q, p)
-            .then(row => cb(null, row))
-            .catch(err => cb(err, null));
+            .then(row => { if (cb) cb(null, row); })
+            .catch(err => { if (cb) cb(err, null); });
     }
 };
 
