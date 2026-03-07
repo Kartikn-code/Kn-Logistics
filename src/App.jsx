@@ -7,6 +7,7 @@ import Contact from './pages/Contact';
 import Admin from './pages/Admin';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 import PageWrapper from './components/UI/PageWrapper';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
@@ -33,6 +34,11 @@ function App() {
             <Route path="admin" element={
               <ProtectedRoute>
                 <PageWrapper><Admin /></PageWrapper>
+              </ProtectedRoute>
+            } />
+            <Route path="signup" element={
+              <ProtectedRoute>
+                <PageWrapper><Signup /></PageWrapper>
               </ProtectedRoute>
             } />
           </Route>

@@ -4,6 +4,7 @@ import csv from 'csv-parser';
 import fs from 'fs';
 import XLSX from 'xlsx';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import db from './database.js';
 
 const router = express.Router();
@@ -30,16 +31,70 @@ const verifyToken = (req, res, next) => {
     });
 };
 
+// Helper to hash password
+const hashPassword = (password) => {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+    return `${salt}:${hash}`;
+};
+
+// Helper to verify password
+const verifyPassword = (password, storedPassword) => {
+    try {
+        const [salt, key] = storedPassword.split(':');
+        const hashBuffer = crypto.scryptSync(password, salt, 64);
+        const keyBuffer = Buffer.from(key, 'hex');
+        return crypto.timingSafeEqual(hashBuffer, keyBuffer);
+    } catch (e) {
+        return false;
+    }
+};
+
 // POST Login
 router.post('/login', (req, res) => {
     const { username, password } = req.body;
 
+    // First check hardcoded environment variables as a master login
     if (username === ADMIN_USER && password === ADMIN_PASS) {
         const token = jwt.sign({ id: username, role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
-        res.json({ success: true, token, message: 'Logged in successfully' });
-    } else {
-        res.status(401).json({ success: false, message: 'Invalid credentials' });
+        return res.json({ success: true, token, message: 'Logged in successfully (Master)' });
     }
+
+    // Then check the users database
+    db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
+        if (err) {
+            console.error('Database error during login:', err);
+            return res.status(500).json({ success: false, message: 'Server error during login' });
+        }
+
+        if (user && verifyPassword(password, user.password || user.passwordhash)) {
+            const token = jwt.sign({ id: user.username, role: 'user' }, JWT_SECRET, { expiresIn: '8h' });
+            return res.json({ success: true, token, message: 'Logged in successfully' });
+        } else {
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+    });
+});
+
+// POST Signup (Protected to ensure only authorized users can create more users)
+router.post('/signup', verifyToken, (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password || password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Invalid username or password must be purely alphanumeric and 6+ chars' });
+    }
+
+    const hashedPassword = hashPassword(password);
+
+    db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword], function (err) {
+        if (err) {
+            if (err.message.includes('UNIQUE constraint failed')) {
+                return res.status(400).json({ success: false, message: 'Username already exists' });
+            }
+            return res.status(500).json({ success: false, message: 'Failed to create user' });
+        }
+        res.json({ success: true, message: 'User created successfully' });
+    });
 });
 
 // Configure Multer for file upload (Memory Storage for Vercel)

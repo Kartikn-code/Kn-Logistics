@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Upload, Plus, FileText, CheckCircle, AlertCircle, DollarSign, Trash2, Search, Bell, Edit2, X, Save } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Upload, Plus, FileText, CheckCircle, AlertCircle, DollarSign, Trash2, Search, Bell, Edit2, X, Save, UserPlus } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { createDispatchRecord, uploadFinancialData, getFilteredRecords, getDashboardStats, getAnnualSummary, deleteDispatchRecords, updateDispatchRecord } from '../utils/api';
@@ -13,6 +14,8 @@ const Admin = () => {
     const [financialFile, setFinancialFile] = useState(null);
     const [financialStatus, setFinancialStatus] = useState(null);
     const [selectedRecordIds, setSelectedRecordIds] = useState([]);
+
+    const navigate = useNavigate();
 
     // Edit tracking
     const [editingRecordId, setEditingRecordId] = useState(null);
@@ -188,6 +191,9 @@ const Admin = () => {
             <div className={styles.headerArea}>
                 <h1 className={styles.pageTitle}>Admin Console</h1>
                 <div className={styles.headerRight}>
+                    <Button onClick={() => navigate('/signup')} variant="outline" className={styles.addDataBtn}>
+                        <UserPlus size={16} /> Create User
+                    </Button>
                     <Button onClick={() => setIsModalOpen(true)} className={styles.addDataBtn}>
                         <Plus size={16} /> Manage Data
                     </Button>
