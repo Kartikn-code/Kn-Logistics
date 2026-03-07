@@ -193,17 +193,17 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
                 normRow[key.replace(/[\n\r]+/g, '').toUpperCase().trim()] = row[key];
             }
 
-            let dispatchDate = normRow['DISPATCH - DATE'] || normRow['DISPATCH-DATE'] || normRow['DISPATCH DATE'] || '';
-            const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICE.NO'] || '';
-            const lrNo = normRow['LR. NO'] || normRow['LR.NO'] || normRow['LR NO'] || '';
-            const sourceLocation = normRow['FROM'] || '';
-            const finalDestination = normRow['TO'] || '';
-            const poNumber = normRow['PO.NUMBER'] || normRow['PO NUMBER'] || '';
-            const tons = parseFloat(normRow['TONS']) || 0;
-            const truckNo = normRow['TRUCK.NO'] || normRow['TRUCK NO'] || '';
+            let dispatchDate = normRow['DISPATCH - DATE'] || normRow['DISPATCH-DATE'] || normRow['DISPATCH DATE'] || normRow['DISPATCHDATE'] || normRow['DATE'] || '';
+            const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICE.NO'] || normRow['INVOICE NO.'] || normRow['INVOICENO.'] || normRow['INVOICENO'] || '';
+            const lrNo = normRow['LR. NO'] || normRow['LR.NO'] || normRow['LR NO'] || normRow['LRNO'] || '';
+            const sourceLocation = normRow['FROM'] || normRow['SOURCELOCATION'] || normRow['SOURCE'] || '';
+            const finalDestination = normRow['TO'] || normRow['FINALDESTINATION'] || normRow['DESTINATION'] || '';
+            const poNumber = normRow['PO.NUMBER'] || normRow['PO NUMBER'] || normRow['PONUMBER'] || '';
+            const tons = parseFloat(normRow['TONS'] || normRow['WEIGHT']) || 0;
+            const truckNo = normRow['TRUCK.NO'] || normRow['TRUCK NO'] || normRow['TRUCKNO'] || normRow['VEHICLENO'] || '';
 
-            let dateOfArrival = normRow['DATE OF ARRIVAL'] || normRow['DATEOFARRIVAL'] || '';
-            let deliveryDate = normRow['DATE OF DELIVERY'] || normRow['DATEOFDELIVERY'] || '';
+            let dateOfArrival = normRow['DATE OF ARRIVAL'] || normRow['DATEOFARRIVAL'] || normRow['ARRIVALDATE'] || '';
+            let deliveryDate = normRow['DATE OF DELIVERY'] || normRow['DATEOFDELIVERY'] || normRow['DELIVERYDATE'] || '';
 
             const freight = parseFloat(normRow['FREIGHT']) || 0;
             const multiPoint = parseFloat(normRow['MULTI- POINT'] || normRow['MULTI-POINT'] || normRow['MULTIPOINT']) || 0;

@@ -672,16 +672,17 @@
     color: #111;
 }
 
-.form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem 1rem;
+    margin-bottom: 1rem;
 }
 
-.formRow {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+.formSubmitAction {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
 }
 
 .formGroup {

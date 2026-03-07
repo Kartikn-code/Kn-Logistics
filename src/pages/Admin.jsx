@@ -380,103 +380,89 @@ const Admin = () => {
                             {/* Manual Entry */}
                             <Card className={styles.formCard}>
                                 <h3><Plus size={18} /> Manual Entry: New Dispatch Record</h3>
-                                <form onSubmit={handleManualSubmit} className={styles.form}>
-                                    <div className={styles.formRow}>
-                                        <div className={styles.formGroup}>
-                                            <label>Dispatch Date *</label>
-                                            <input type="date" name="dispatchDate" value={formData.dispatchDate} onChange={handleInputChange} required />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Truck Number *</label>
-                                            <input type="text" name="truckNo" value={formData.truckNo} onChange={handleInputChange} required placeholder="TN-45-AA-1234" />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>LR No</label>
-                                            <input type="text" name="lrNo" value={formData.lrNo} onChange={handleInputChange} placeholder="LR-10293" />
-                                        </div>
+                                <form onSubmit={handleManualSubmit} className={styles.formGrid}>
+                                    <div className={styles.formGroup}>
+                                        <label>Dispatch Date *</label>
+                                        <input type="date" name="dispatchDate" value={formData.dispatchDate} onChange={handleInputChange} required />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Truck Number *</label>
+                                        <input type="text" name="truckNo" value={formData.truckNo} onChange={handleInputChange} required placeholder="TN-45-AA-1234" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>LR No</label>
+                                        <input type="text" name="lrNo" value={formData.lrNo} onChange={handleInputChange} placeholder="LR-10293" />
                                     </div>
 
-                                    <div className={styles.formRow}>
-                                        <div className={styles.formGroup}>
-                                            <label>Source (From)</label>
-                                            <input type="text" name="sourceLocation" value={formData.sourceLocation} onChange={handleInputChange} placeholder="Chennai" />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Destination (To)</label>
-                                            <input type="text" name="finalDestination" value={formData.finalDestination} onChange={handleInputChange} placeholder="Mumbai" />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Invoice Number</label>
-                                            <input type="text" name="invoiceNo" value={formData.invoiceNo} onChange={handleInputChange} placeholder="INV-2024" />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>PO Number</label>
-                                            <input type="text" name="poNumber" value={formData.poNumber} onChange={handleInputChange} placeholder="PO-9921" />
-                                        </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Source (From)</label>
+                                        <input type="text" name="sourceLocation" value={formData.sourceLocation} onChange={handleInputChange} placeholder="Chennai" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Destination (To)</label>
+                                        <input type="text" name="finalDestination" value={formData.finalDestination} onChange={handleInputChange} placeholder="Mumbai" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Invoice Number</label>
+                                        <input type="text" name="invoiceNo" value={formData.invoiceNo} onChange={handleInputChange} placeholder="INV-2024" />
                                     </div>
 
-                                    <div className={styles.formRow}>
-                                        <div className={styles.formGroup}>
-                                            <label>Date of Arrival</label>
-                                            <input type="date" name="dateOfArrival" value={formData.dateOfArrival} onChange={handleInputChange} />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Date of Delivery</label>
-                                            <input type="date" name="deliveryDate" value={formData.deliveryDate} onChange={handleInputChange} />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Tons</label>
-                                            <input type="number" step="0.01" name="tons" value={formData.tons} onChange={handleInputChange} placeholder="0.00" />
-                                        </div>
+                                    <div className={styles.formGroup}>
+                                        <label>PO Number</label>
+                                        <input type="text" name="poNumber" value={formData.poNumber} onChange={handleInputChange} placeholder="PO-9921" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Date of Arrival</label>
+                                        <input type="date" name="dateOfArrival" value={formData.dateOfArrival} onChange={handleInputChange} />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Date of Delivery</label>
+                                        <input type="date" name="deliveryDate" value={formData.deliveryDate} onChange={handleInputChange} />
                                     </div>
 
-                                    <div className={styles.formRow}>
-                                        <div className={styles.formGroup}>
-                                            <label>Freight (₹)</label>
-                                            <input type="number" step="0.01" name="freight" value={formData.freight} onChange={handleInputChange} placeholder="0.00" />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Multi-Point (₹)</label>
-                                            <input type="number" step="0.01" name="multiPoint" value={formData.multiPoint} onChange={handleInputChange} placeholder="0.00" />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Loading (₹)</label>
-                                            <input type="number" step="0.01" name="loading" value={formData.loading} onChange={handleInputChange} placeholder="0.00" />
-                                        </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Tons</label>
+                                        <input type="number" step="0.01" name="tons" value={formData.tons} onChange={handleInputChange} placeholder="0.00" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Freight (₹)</label>
+                                        <input type="number" step="0.01" name="freight" value={formData.freight} onChange={handleInputChange} placeholder="0.00" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Multi-Point (₹)</label>
+                                        <input type="number" step="0.01" name="multiPoint" value={formData.multiPoint} onChange={handleInputChange} placeholder="0.00" />
                                     </div>
 
-                                    <div className={styles.formRow}>
-                                        <div className={styles.formGroup}>
-                                            <label>Un Loading (₹)</label>
-                                            <input type="number" step="0.01" name="unloading" value={formData.unloading} onChange={handleInputChange} placeholder="0.00" />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Halting (₹)</label>
-                                            <input type="number" step="0.01" name="halt" value={formData.halt} onChange={handleInputChange} placeholder="0.00" />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            {/* Spacer */}
-                                        </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Loading (₹)</label>
+                                        <input type="number" step="0.01" name="loading" value={formData.loading} onChange={handleInputChange} placeholder="0.00" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Un Loading (₹)</label>
+                                        <input type="number" step="0.01" name="unloading" value={formData.unloading} onChange={handleInputChange} placeholder="0.00" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Halting (₹)</label>
+                                        <input type="number" step="0.01" name="halt" value={formData.halt} onChange={handleInputChange} placeholder="0.00" />
                                     </div>
 
-                                    <div className={styles.formRow} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "15px", marginTop: "10px" }}>
-                                        <div className={styles.formGroup}>
-                                            <label>Fuel Cost (Expenses ₹)</label>
-                                            <input type="number" step="0.01" name="fuelCost" value={formData.fuelCost} onChange={handleInputChange} placeholder="0.00" />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Driver Fee (Expenses ₹)</label>
-                                            <input type="number" step="0.01" name="driverFee" value={formData.driverFee} onChange={handleInputChange} placeholder="0.00" />
-                                        </div>
-                                        <div className={styles.formGroup} style={{ display: "flex", alignItems: "flex-end" }}>
-                                            <Button type="submit" disabled={loading} className={styles.submitBtn} style={{ width: "100%" }}>
-                                                {loading ? 'Saving...' : 'Create Record'}
-                                            </Button>
-                                        </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Fuel Cost (Expenses ₹)</label>
+                                        <input type="number" step="0.01" name="fuelCost" value={formData.fuelCost} onChange={handleInputChange} placeholder="0.00" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Driver Fee (Expenses ₹)</label>
+                                        <input type="number" step="0.01" name="driverFee" value={formData.driverFee} onChange={handleInputChange} placeholder="0.00" />
+                                    </div>
+
+                                    <div className={styles.formSubmitAction}>
+                                        <Button type="submit" disabled={loading} style={{ width: '100%', marginTop: 'auto' }}>
+                                            {loading ? 'Saving...' : 'Create Record  →'}
+                                        </Button>
                                     </div>
 
                                     {uploadStatus && (
-                                        <div className={`${styles.status} ${styles[uploadStatus.type]}`}>
+                                        <div className={`${styles.status} ${styles[uploadStatus.type]} ${styles.formSubmitAction}`}>
                                             {uploadStatus.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
                                             {uploadStatus.message}
                                         </div>
