@@ -254,9 +254,9 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
                 return val;
             };
 
-            dispatchDate = parseExcelDate(dispatchDate);
-            dateOfArrival = parseExcelDate(dateOfArrival);
-            deliveryDate = parseExcelDate(deliveryDate);
+            dispatchDate = parseExcelDate(dispatchDate) || null;
+            dateOfArrival = parseExcelDate(dateOfArrival) || null;
+            deliveryDate = parseExcelDate(deliveryDate) || null;
 
             if (dispatchDate && truckNo) {
                 db.run(sql, [dispatchDate, invoiceNo, lrNo, sourceLocation, finalDestination, poNumber, tons, truckNo, dateOfArrival, deliveryDate, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee, total], (err) => {
@@ -285,7 +285,7 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
             }
         });
     } catch (error) {
-        return res.status(500).json({ error: 'Failed to parse Excel file: ' + error.message });
+        return res.status(500).json({ error: 'Failed to parse Excel file: ' + (error.message || error) });
     }
 });
 
@@ -478,9 +478,10 @@ router.put('/analytics/record/:id', async (req, res) => {
 
         await new Promise((resolve, reject) => {
             db.run(updateSql, [
-                dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination,
-                dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt,
-                fuelCost, driverFee, total, id
+                dispatchDate || null, invoiceNo || null, lrNo || null, poNumber || null, truckNo || null,
+                sourceLocation || null, finalDestination || null, dateOfArrival || null, deliveryDate || null,
+                Number(tons) || 0, Number(freight) || 0, Number(multiPoint) || 0, Number(loading) || 0, Number(unloading) || 0, Number(halt) || 0,
+                Number(fuelCost) || 0, Number(driverFee) || 0, total, id
             ], function (err) {
                 if (err) reject(err);
                 else resolve();
@@ -555,13 +556,14 @@ router.post('/analytics/record', async (req, res) => {
     `;
 
     db.run(sql, [
-        dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination,
-        dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt,
-        fuelCost, driverFee, total
+        dispatchDate || null, invoiceNo || null, lrNo || null, poNumber || null, truckNo || null,
+        sourceLocation || null, finalDestination || null, dateOfArrival || null, deliveryDate || null,
+        Number(tons) || 0, Number(freight) || 0, Number(multiPoint) || 0, Number(loading) || 0, Number(unloading) || 0, Number(halt) || 0,
+        Number(fuelCost) || 0, Number(driverFee) || 0, total
     ], function (err) {
         if (err) {
             console.error('Error creating record:', err.message);
-            return res.status(500).json({ error: 'Failed to create record' });
+            return res.status(500).json({ error: `Failed to create record: ${err.message}` });
         }
         res.json({ message: 'Record created successfully', id: this.lastID, total });
     });
