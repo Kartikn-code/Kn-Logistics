@@ -6,23 +6,39 @@ import Dashboard from './pages/Dashboard';
 import Contact from './pages/Contact';
 import Admin from './pages/Admin';
 import Home from './pages/Home';
+import Login from './pages/Login';
 import PageWrapper from './components/UI/PageWrapper';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<PageWrapper><Home /></PageWrapper>} />
-          <Route path="services" element={<PageWrapper><Services /></PageWrapper>} />
-          <Route path="contact" element={<PageWrapper><Contact /></PageWrapper>} />
-          <Route path="dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
-          <Route path="admin" element={<PageWrapper><Admin /></PageWrapper>} />
-        </Route>
-      </Routes>
-    </AnimatePresence>
+    <AuthProvider>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<PageWrapper><Home /></PageWrapper>} />
+            <Route path="services" element={<PageWrapper><Services /></PageWrapper>} />
+            <Route path="contact" element={<PageWrapper><Contact /></PageWrapper>} />
+            <Route path="login" element={<PageWrapper><Login /></PageWrapper>} />
+
+            {/* Protected Routes */}
+            <Route path="dashboard" element={
+              <ProtectedRoute>
+                <PageWrapper><Dashboard /></PageWrapper>
+              </ProtectedRoute>
+            } />
+            <Route path="admin" element={
+              <ProtectedRoute>
+                <PageWrapper><Admin /></PageWrapper>
+              </ProtectedRoute>
+            } />
+          </Route>
+        </Routes>
+      </AnimatePresence>
+    </AuthProvider>
   );
 }
 

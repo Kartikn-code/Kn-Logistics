@@ -3,15 +3,50 @@ import multer from 'multer';
 import csv from 'csv-parser';
 import fs from 'fs';
 import XLSX from 'xlsx';
+import jwt from 'jsonwebtoken';
 import db from './database.js';
 
 const router = express.Router();
+
+// JWT Secret (fallback to random if not in production env)
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_kn_logistics_secret_key_2026';
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+
+// Verify Token Middleware
+const verifyToken = (req, res, next) => {
+    const bearerHeader = req.headers['authorization'];
+    if (!bearerHeader) {
+        return res.status(403).json({ error: 'No token provided' });
+    }
+    const token = bearerHeader.split(' ')[1];
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ error: 'Failed to authenticate token' });
+        }
+        req.userId = decoded.id;
+        next();
+    });
+};
+
+// POST Login
+router.post('/login', (req, res) => {
+    const { username, password } = req.body;
+
+    if (username === ADMIN_USER && password === ADMIN_PASS) {
+        const token = jwt.sign({ id: username, role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
+        res.json({ success: true, token, message: 'Logged in successfully' });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+});
 
 // Configure Multer for file upload (Memory Storage for Vercel)
 const upload = multer({ storage: multer.memoryStorage() });
 
 // GET all active orders
-router.get('/orders', (req, res) => {
+router.get('/orders', verifyToken, (req, res) => {
     const sql = 'SELECT * FROM orders ORDER BY timestamp DESC';
     db.all(sql, [], (err, rows) => {
         if (err) {
@@ -22,7 +57,7 @@ router.get('/orders', (req, res) => {
 });
 
 // GET dashboard stats
-router.get('/stats', (req, res) => {
+router.get('/stats', verifyToken, (req, res) => {
     const sql = `
         SELECT
             COUNT(*) as total,
@@ -44,7 +79,7 @@ router.get('/stats', (req, res) => {
 });
 
 // GET single order by Order ID
-router.get('/orders/:id', (req, res) => {
+router.get('/orders/:id', verifyToken, (req, res) => {
     const sql = 'SELECT * FROM orders WHERE orderId = ?';
     db.get(sql, [req.params.id], (err, row) => {
         if (err) {
@@ -58,7 +93,7 @@ router.get('/orders/:id', (req, res) => {
 });
 
 // DELETE multiple orders
-router.delete('/orders', async (req, res) => {
+router.delete('/orders', verifyToken, async (req, res) => {
     const { ids } = req.body; // Expecting an array of orderIds (e.g., ['KN-2024-001', 'KN-2024-002'])
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: 'No order IDs provided for deletion' });
@@ -83,7 +118,7 @@ router.delete('/orders', async (req, res) => {
 });
 
 // CREATE a new order (Manual Entry)
-router.post('/orders', (req, res) => {
+router.post('/orders', verifyToken, (req, res) => {
     const { orderId, truckNumber, truckType, status, currentLocation } = req.body;
 
     const sql = `INSERT INTO orders (orderId, truckNumber, truckType, status, currentLocation)
@@ -100,7 +135,7 @@ router.post('/orders', (req, res) => {
 });
 
 // UPLOAD CSV
-router.post('/upload', upload.single('file'), (req, res) => {
+router.post('/upload', verifyToken, upload.single('file'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -164,7 +199,7 @@ router.post('/upload', upload.single('file'), (req, res) => {
 // ===== DISPATCH / FINANCIAL DATA ROUTES =====
 
 // UPLOAD Excel for dispatch records
-router.post('/upload-financial', upload.single('file'), (req, res) => {
+router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -290,7 +325,7 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
 });
 
 // GET Annual Summary
-router.get('/analytics/annual-summary', (req, res) => {
+router.get('/analytics/annual-summary', verifyToken, (req, res) => {
     const isPg = !!process.env.DATABASE_URL;
     const yearExt = isPg ? "TO_CHAR(dispatchDate, 'YYYY')" : "strftime('%Y', dispatchDate)";
 
@@ -317,7 +352,7 @@ router.get('/analytics/annual-summary', (req, res) => {
 });
 
 // GET Truck-based Earnings
-router.get('/analytics/truck-earnings', (req, res) => {
+router.get('/analytics/truck-earnings', verifyToken, (req, res) => {
     const isPg = !!process.env.DATABASE_URL;
     const yearExt = isPg ? "TO_CHAR(dispatchDate, 'YYYY')" : "strftime('%Y', dispatchDate)";
     const year = req.query.year || new Date().getFullYear().toString();
@@ -345,7 +380,7 @@ router.get('/analytics/truck-earnings', (req, res) => {
 });
 
 // GET Monthly Earnings
-router.get('/analytics/monthly-earnings', (req, res) => {
+router.get('/analytics/monthly-earnings', verifyToken, (req, res) => {
     const isPg = !!process.env.DATABASE_URL;
     const yearExt = isPg ? "TO_CHAR(dispatchDate, 'YYYY')" : "strftime('%Y', dispatchDate)";
     const monthExt = isPg ? "TO_CHAR(dispatchDate, 'MM')" : "strftime('%m', dispatchDate)";
@@ -389,7 +424,7 @@ router.get('/analytics/monthly-earnings', (req, res) => {
 });
 
 // GET all dispatch records
-router.get('/dispatch-records', (req, res) => {
+router.get('/dispatch-records', verifyToken, (req, res) => {
     const sql = 'SELECT * FROM dispatch_records ORDER BY dispatchDate DESC LIMIT 200';
     db.all(sql, [], (err, rows) => {
         if (err) {
@@ -399,7 +434,7 @@ router.get('/dispatch-records', (req, res) => {
     });
 });
 // GET Filtered Dispatch Records
-router.get('/analytics/filtered-records', (req, res) => {
+router.get('/analytics/filtered-records', verifyToken, (req, res) => {
     const { truckNo, invoiceNo, dispatchDate, deliveryDate, loading, unloading, freight, year } = req.query;
 
     let sql = `SELECT * FROM dispatch_records WHERE 1=1`;
@@ -411,8 +446,14 @@ router.get('/analytics/filtered-records', (req, res) => {
     }
 
     if (year) {
-        sql += " AND dispatchDate LIKE ?";
-        params.push(`${year}%`);
+        const isPg = !!process.env.DATABASE_URL;
+        if (isPg) {
+            sql += " AND TO_CHAR(dispatchDate, 'YYYY') = ?";
+            params.push(year);
+        } else {
+            sql += " AND dispatchDate LIKE ?";
+            params.push(`${year}%`);
+        }
     }
 
     if (invoiceNo) {
@@ -421,13 +462,25 @@ router.get('/analytics/filtered-records', (req, res) => {
     }
 
     if (dispatchDate) {
-        sql += " AND dispatchDate = ?";
-        params.push(dispatchDate);
+        const isPg = !!process.env.DATABASE_URL;
+        if (isPg) {
+            sql += " AND TO_CHAR(dispatchDate, 'YYYY-MM-DD') = ?";
+            params.push(dispatchDate);
+        } else {
+            sql += " AND dispatchDate LIKE ?";
+            params.push(`${dispatchDate}%`);
+        }
     }
 
     if (deliveryDate) {
-        sql += " AND deliveryDate = ?";
-        params.push(deliveryDate);
+        const isPg = !!process.env.DATABASE_URL;
+        if (isPg) {
+            sql += " AND TO_CHAR(deliveryDate, 'YYYY-MM-DD') = ?";
+            params.push(deliveryDate);
+        } else {
+            sql += " AND deliveryDate LIKE ?";
+            params.push(`${deliveryDate}%`);
+        }
     }
 
     if (loading) {
@@ -457,7 +510,7 @@ router.get('/analytics/filtered-records', (req, res) => {
 });
 
 // Update a single dispatch record (Inline Edit)
-router.put('/analytics/record/:id', async (req, res) => {
+router.put('/analytics/record/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination, dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee } = req.body;
 
@@ -504,7 +557,7 @@ router.put('/analytics/record/:id', async (req, res) => {
 });
 
 // Bulk Delete Dispatch Records
-router.delete('/analytics/filtered-records', async (req, res) => {
+router.delete('/analytics/filtered-records', verifyToken, async (req, res) => {
     const { ids } = req.body; // Expecting an array of IDs
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: 'No record IDs provided for deletion' });
@@ -529,7 +582,7 @@ router.delete('/analytics/filtered-records', async (req, res) => {
 });
 
 // Reset Entire Database (Orders and Dispatch Records)
-router.delete('/reset-database', async (req, res) => {
+router.delete('/reset-database', verifyToken, async (req, res) => {
     try {
         await new Promise((resolve, reject) => {
             db.run('DELETE FROM orders', function (err) {
@@ -553,7 +606,7 @@ router.delete('/reset-database', async (req, res) => {
 });
 
 // Create a new single dispatch record (Manual Entry)
-router.post('/analytics/record', async (req, res) => {
+router.post('/analytics/record', verifyToken, async (req, res) => {
     const { dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination, dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee } = req.body;
 
     const total = Number(freight || 0) + Number(multiPoint || 0) + Number(loading || 0) + Number(unloading || 0) + Number(halt || 0);
