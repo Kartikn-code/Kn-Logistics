@@ -7,8 +7,8 @@ import db from './database.js';
 
 const router = express.Router();
 
-// Configure Multer for file upload
-const upload = multer({ dest: 'uploads/' });
+// Configure Multer for file upload (Memory Storage for Vercel)
+const upload = multer({ storage: multer.memoryStorage() });
 
 // GET all active orders
 router.get('/orders', (req, res) => {
@@ -106,7 +106,11 @@ router.post('/upload', upload.single('file'), (req, res) => {
     }
 
     const results = [];
-    fs.createReadStream(req.file.path)
+    // Create Readable Stream from buffer
+    const { Readable } = require('stream');
+    const stream = Readable.from(req.file.buffer);
+
+    stream
         .pipe(csv())
         .on('data', (data) => results.push(data))
         .on('end', () => {
@@ -120,7 +124,6 @@ router.post('/upload', upload.single('file'), (req, res) => {
             let errors = 0;
 
             if (results.length === 0) {
-                fs.unlinkSync(req.file.path);
                 return res.json({ message: 'No data found in file' });
             }
 
@@ -139,9 +142,6 @@ router.post('/upload', upload.single('file'), (req, res) => {
                         completed++;
 
                         if (completed === results.length) {
-                            // Clean up file
-                            fs.unlinkSync(req.file.path);
-                            // Avoid sending response multiple times or if headers sent
                             if (!res.headersSent) {
                                 res.json({
                                     message: `Processed ${results.length} rows`,
@@ -154,7 +154,6 @@ router.post('/upload', upload.single('file'), (req, res) => {
                 } else {
                     completed++; // Skip empty rows but count them
                     if (completed === results.length && !res.headersSent) {
-                        fs.unlinkSync(req.file.path);
                         res.json({ message: 'Processed', details: 'Some rows missing OrderID' });
                     }
                 }
@@ -171,13 +170,12 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
     }
 
     try {
-        const workbook = XLSX.readFile(req.file.path);
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json(sheet);
 
         if (rows.length === 0) {
-            fs.unlinkSync(req.file.path);
             return res.json({ message: 'No data found in file', success: 0, failed: 0 });
         }
 
@@ -266,7 +264,6 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
                     completed++;
 
                     if (completed + skipped === rows.length && !res.headersSent) {
-                        fs.unlinkSync(req.file.path);
                         res.json({
                             message: `Processed ${rows.length} rows`,
                             success: completed - errors,
@@ -278,7 +275,6 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
             } else {
                 skipped++;
                 if (completed + skipped === rows.length && !res.headersSent) {
-                    fs.unlinkSync(req.file.path);
                     res.json({
                         message: `Processed ${rows.length} rows`,
                         success: completed - errors,
@@ -289,7 +285,6 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
             }
         });
     } catch (error) {
-        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         return res.status(500).json({ error: 'Failed to parse Excel file: ' + error.message });
     }
 });
