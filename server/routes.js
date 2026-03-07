@@ -291,9 +291,12 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
 
 // GET Annual Summary
 router.get('/analytics/annual-summary', (req, res) => {
+    const isPg = !!process.env.DATABASE_URL;
+    const yearExt = isPg ? "TO_CHAR(dispatchDate, 'YYYY')" : "strftime('%Y', dispatchDate)";
+
     const sql = `
         SELECT
-            strftime('%Y', dispatchDate) as year,
+            ${yearExt} as year,
             SUM(freight + loading + unloading + halt) as totalEarnings,
             SUM(fuelCost + driverFee) as totalExpenses,
             SUM(freight + loading + unloading + halt) - SUM(fuelCost + driverFee) as netProfit,
@@ -301,7 +304,7 @@ router.get('/analytics/annual-summary', (req, res) => {
             SUM(tons) as totalTons,
             COUNT(*) as totalTrips
         FROM dispatch_records
-        GROUP BY strftime('%Y', dispatchDate)
+        GROUP BY ${yearExt}
         ORDER BY year DESC
     `;
 
@@ -315,6 +318,8 @@ router.get('/analytics/annual-summary', (req, res) => {
 
 // GET Truck-based Earnings
 router.get('/analytics/truck-earnings', (req, res) => {
+    const isPg = !!process.env.DATABASE_URL;
+    const yearExt = isPg ? "TO_CHAR(dispatchDate, 'YYYY')" : "strftime('%Y', dispatchDate)";
     const year = req.query.year || new Date().getFullYear().toString();
     const sql = `
         SELECT
@@ -326,7 +331,7 @@ router.get('/analytics/truck-earnings', (req, res) => {
             SUM(tons) as totalTons,
             COUNT(*) as trips
         FROM dispatch_records
-        WHERE strftime('%Y', dispatchDate) = ?
+        WHERE ${yearExt} = ?
         GROUP BY truckNo
         ORDER BY earnings DESC
     `;
@@ -341,18 +346,21 @@ router.get('/analytics/truck-earnings', (req, res) => {
 
 // GET Monthly Earnings
 router.get('/analytics/monthly-earnings', (req, res) => {
+    const isPg = !!process.env.DATABASE_URL;
+    const yearExt = isPg ? "TO_CHAR(dispatchDate, 'YYYY')" : "strftime('%Y', dispatchDate)";
+    const monthExt = isPg ? "TO_CHAR(dispatchDate, 'MM')" : "strftime('%m', dispatchDate)";
     const year = req.query.year || new Date().getFullYear().toString();
     const sql = `
         SELECT
-            strftime('%m', dispatchDate) as month,
-            strftime('%Y', dispatchDate) as year,
+            ${monthExt} as month,
+            ${yearExt} as year,
             SUM(freight + loading + unloading + halt) as earnings,
             SUM(fuelCost + driverFee) as expenses,
             SUM(total) as grandTotal,
             COUNT(*) as trips
         FROM dispatch_records
-        WHERE strftime('%Y', dispatchDate) = ?
-        GROUP BY strftime('%m', dispatchDate)
+        WHERE ${yearExt} = ?
+        GROUP BY ${monthExt}
         ORDER BY month ASC
     `;
 

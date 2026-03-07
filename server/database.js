@@ -71,28 +71,56 @@ const initializeDatabase = async () => {
         };
         const camelCaseRow = (row) => {
             if (!row) return row;
-            return {
-                id: row.id,
-                dispatchDate: row.dispatchdate || row.dispatchDate,
-                invoiceNo: row.invoiceno || row.invoiceNo,
-                lrNo: row.lrno || row.lrNo,
-                sourceLocation: row.sourcelocation || row.sourceLocation,
-                finalDestination: row.finaldestination || row.finalDestination,
-                poNumber: row.ponumber || row.poNumber,
-                tons: row.tons,
-                truckNo: row.truckno || row.truckNo,
-                dateOfArrival: row.dateofarrival || row.dateOfArrival,
-                deliveryDate: row.deliverydate || row.deliveryDate,
-                freight: row.freight,
-                multiPoint: row.multipoint || row.multiPoint,
-                loading: row.loading,
-                unloading: row.unloading,
-                halt: row.halt,
-                fuelCost: row.fuelcost || row.fuelCost,
-                driverFee: row.driverfee || row.driverFee,
-                total: row.total,
-                createdAt: row.createdat || row.createdAt
+            const mapped = { ...row };
+
+            // 1. Map lowercased PostgreSQL keys back to accurate camelCase
+            const keyMap = {
+                'dispatchdate': 'dispatchDate',
+                'invoiceno': 'invoiceNo',
+                'lrno': 'lrNo',
+                'sourcelocation': 'sourceLocation',
+                'finaldestination': 'finalDestination',
+                'ponumber': 'poNumber',
+                'truckno': 'truckNo',
+                'dateofarrival': 'dateOfArrival',
+                'deliverydate': 'deliveryDate',
+                'multipoint': 'multiPoint',
+                'fuelcost': 'fuelCost',
+                'driverfee': 'driverFee',
+                'createdat': 'createdAt',
+                'totalearnings': 'totalEarnings',
+                'totalexpenses': 'totalExpenses',
+                'netprofit': 'netProfit',
+                'grandtotal': 'grandTotal',
+                'totaltons': 'totalTons',
+                'totaltrips': 'totalTrips',
+                'trucknumber': 'truckNumber',
+                'intransit': 'inTransit',
+                'activetrucks': 'activeTrucks'
             };
+
+            for (const [lower, camel] of Object.entries(keyMap)) {
+                if (mapped[lower] !== undefined && lower !== camel) {
+                    mapped[camel] = mapped[lower];
+                    delete mapped[lower];
+                }
+            }
+
+            // 2. Coerce string-encoded numerics (like PG decimals/bigints) to JS Numbers
+            const numericFields = [
+                'tons', 'freight', 'multiPoint', 'loading', 'unloading', 'halt',
+                'fuelCost', 'driverFee', 'total', 'totalEarnings', 'totalExpenses',
+                'netProfit', 'grandTotal', 'totalTons', 'totalTrips', 'earnings',
+                'expenses', 'profit', 'trips', 'inTransit', 'activeTrucks'
+            ];
+
+            for (const key of Object.keys(mapped)) {
+                if (numericFields.includes(key)) {
+                    mapped[key] = mapped[key] !== null ? Number(mapped[key]) : 0;
+                }
+            }
+
+            return mapped;
         };
 
         dbWrapper.all = async (query, params = [], callback) => {
