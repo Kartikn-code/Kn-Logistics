@@ -360,7 +360,7 @@ router.get('/analytics/monthly-earnings', (req, res) => {
             COUNT(*) as trips
         FROM dispatch_records
         WHERE ${yearExt} = ?
-        GROUP BY ${monthExt}
+        GROUP BY ${yearExt}, ${monthExt}
         ORDER BY month ASC
     `;
 
