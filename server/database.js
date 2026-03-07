@@ -69,6 +69,32 @@ const initializeDatabase = async () => {
                 else throw err;
             }
         };
+        const camelCaseRow = (row) => {
+            if (!row) return row;
+            return {
+                id: row.id,
+                dispatchDate: row.dispatchdate || row.dispatchDate,
+                invoiceNo: row.invoiceno || row.invoiceNo,
+                lrNo: row.lrno || row.lrNo,
+                sourceLocation: row.sourcelocation || row.sourceLocation,
+                finalDestination: row.finaldestination || row.finalDestination,
+                poNumber: row.ponumber || row.poNumber,
+                tons: row.tons,
+                truckNo: row.truckno || row.truckNo,
+                dateOfArrival: row.dateofarrival || row.dateOfArrival,
+                deliveryDate: row.deliverydate || row.deliveryDate,
+                freight: row.freight,
+                multiPoint: row.multipoint || row.multiPoint,
+                loading: row.loading,
+                unloading: row.unloading,
+                halt: row.halt,
+                fuelCost: row.fuelcost || row.fuelCost,
+                driverFee: row.driverfee || row.driverFee,
+                total: row.total,
+                createdAt: row.createdat || row.createdAt
+            };
+        };
+
         dbWrapper.all = async (query, params = [], callback) => {
             if (typeof params === 'function') {
                 callback = params;
@@ -76,8 +102,9 @@ const initializeDatabase = async () => {
             }
             try {
                 const res = await dbWrapper.pool.query(pgFormat(query), params);
-                if (callback) callback(null, res.rows);
-                return res.rows;
+                const mappedRows = res.rows.map(camelCaseRow);
+                if (callback) callback(null, mappedRows);
+                return mappedRows;
             } catch (err) {
                 if (callback) callback(err);
                 else throw err;
@@ -90,8 +117,9 @@ const initializeDatabase = async () => {
             }
             try {
                 const res = await dbWrapper.pool.query(pgFormat(query), params);
-                if (callback) callback(null, res.rows[0]);
-                return res.rows[0];
+                const mappedRow = res.rows.length > 0 ? camelCaseRow(res.rows[0]) : null;
+                if (callback) callback(null, mappedRow);
+                return mappedRow;
             } catch (err) {
                 if (callback) callback(err);
                 else throw err;
