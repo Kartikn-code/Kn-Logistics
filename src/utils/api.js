@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3001/api';
+const API_URL = '/api';
 
 const fetchWithAuth = async (url, options = {}) => {
     const token = localStorage.getItem('auth_token');
@@ -163,12 +163,14 @@ export const getMonthlyEarnings = async (year) => {
 export const getFilteredRecords = async (params) => {
     try {
         const queryParams = new URLSearchParams();
-        if (params.truckType) queryParams.append('truckType', params.truckType);
-        if (params.month) queryParams.append('month', params.month);
+        if (params.truckNo) queryParams.append('truckNo', params.truckNo);
+        if (params.invoiceNo) queryParams.append('invoiceNo', params.invoiceNo);
+        if (params.dispatchDate) queryParams.append('dispatchDate', params.dispatchDate);
+        if (params.deliveryDate) queryParams.append('deliveryDate', params.deliveryDate);
+        if (params.loading) queryParams.append('loading', params.loading);
+        if (params.unloading) queryParams.append('unloading', params.unloading);
+        if (params.freight) queryParams.append('freight', params.freight);
         if (params.year) queryParams.append('year', params.year);
-        if (params.sourceLocation) queryParams.append('sourceLocation', params.sourceLocation);
-        if (params.minRevenue) queryParams.append('minRevenue', params.minRevenue);
-        if (params.maxRevenue) queryParams.append('maxRevenue', params.maxRevenue);
 
         const response = await fetchWithAuth(`${API_URL}/analytics/filtered-records?${queryParams.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch filtered records');
@@ -177,6 +179,20 @@ export const getFilteredRecords = async (params) => {
     } catch (error) {
         console.error('Error fetching filtered records:', error);
         return [];
+    }
+};
+
+export const createDispatchRecord = async (data) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/analytics/record`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error creating record:', error);
+        throw error;
     }
 };
 

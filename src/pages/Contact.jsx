@@ -16,12 +16,13 @@ const Contact = () => {
         const formData = {
             name: e.target.name.value,
             email: e.target.email.value,
+            mobile: e.target.mobile.value,
             subject: e.target.subject.value,
             message: e.target.message.value
         };
 
         try {
-            const response = await fetch('http://localhost:3001/api/contact', {
+            const response = await fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -107,6 +108,10 @@ const Contact = () => {
                                     <div className={styles.formGroup}>
                                         <label htmlFor="email">Email Address</label>
                                         <input type="email" id="email" required placeholder="john@example.com" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label htmlFor="mobile">Mobile Number</label>
+                                        <input type="tel" id="mobile" required placeholder="+91 9876543210" />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label htmlFor="subject">Subject</label>

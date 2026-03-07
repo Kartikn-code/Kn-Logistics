@@ -1,14 +1,15 @@
 import { NavLink } from 'react-router-dom';
-import { Truck, Menu, X } from 'lucide-react';
+import { Truck, Menu, X, Sun, Moon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import styles from './Navbar.module.css';
 import clsx from 'clsx';
-import { useAuth } from '../../context/AuthContext';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
-    const { isAuthenticated, logout } = useAuth();
+
+    // Theme State
+    const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
 
     useEffect(() => {
         const handleScroll = () => {
@@ -18,13 +19,23 @@ const Navbar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    useEffect(() => {
+        if (theme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    const toggleTheme = () => {
+        setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    };
+
     const navLinks = [
-        { name: 'Home', path: '/' },
+        { name: 'Dashboard', path: '/' },
+        { name: 'Admin', path: '/admin' },
         { name: 'Services', path: '/services' },
-        ...(isAuthenticated ? [
-            { name: 'Dashboard', path: '/dashboard' },
-            { name: 'Admin', path: '/admin' }
-        ] : []),
         { name: 'Contact', path: '/contact' },
     ];
 
@@ -47,25 +58,26 @@ const Navbar = () => {
                             {link.name}
                         </NavLink>
                     ))}
-                    {isAuthenticated ? (
-                        <button onClick={logout} className={`${styles.navLink} ${styles.logoutBtn}`}>
-                            Logout
-                        </button>
-                    ) : (
-                        <NavLink to="/login" className={({ isActive }) => clsx(styles.navLink, isActive && styles.active)}>
-                            Admin Login
-                        </NavLink>
-                    )}
+                    <button onClick={toggleTheme} className={styles.themeToggleBtn} aria-label="Toggle theme">
+                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                    </button>
                 </div>
 
-                {/* Mobile Menu Toggle */}
-                <button
-                    className={styles.menuToggle}
-                    onClick={() => setIsOpen(!isOpen)}
-                    aria-label="Toggle menu"
-                >
-                    {isOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    {/* Mobile Theme Toggle */}
+                    <button onClick={toggleTheme} className={`${styles.themeToggleBtn} ${styles.mobileOnlyThemeToggle}`} aria-label="Toggle theme">
+                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                    </button>
+
+                    {/* Mobile Menu Toggle */}
+                    <button
+                        className={styles.menuToggle}
+                        onClick={() => setIsOpen(!isOpen)}
+                        aria-label="Toggle menu"
+                    >
+                        {isOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
+                </div>
 
                 {/* Mobile Menu */}
                 <div className={clsx(styles.mobileMenu, isOpen && styles.open)}>
@@ -79,22 +91,6 @@ const Navbar = () => {
                             {link.name}
                         </NavLink>
                     ))}
-                    {isAuthenticated ? (
-                        <button
-                            onClick={() => { logout(); setIsOpen(false); }}
-                            className={`${styles.mobileNavLink} ${styles.logoutBtnMobile}`}
-                        >
-                            Logout
-                        </button>
-                    ) : (
-                        <NavLink
-                            to="/login"
-                            className={({ isActive }) => clsx(styles.mobileNavLink, isActive && styles.active)}
-                            onClick={() => setIsOpen(false)}
-                        >
-                            Admin Login
-                        </NavLink>
-                    )}
                 </div>
             </div>
         </nav>

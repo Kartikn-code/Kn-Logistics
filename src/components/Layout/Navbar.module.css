@@ -124,3 +124,31 @@
         display: flex;
     }
 }
+
+.themeToggleBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+}
+
+.themeToggleBtn:hover {
+    color: var(--color-primary);
+    background-color: var(--glass-bg);
+}
+
+.mobileOnlyThemeToggle {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobileOnlyThemeToggle {
+        display: flex;
+    }
+}

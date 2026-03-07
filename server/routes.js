@@ -4,62 +4,11 @@ import csv from 'csv-parser';
 import fs from 'fs';
 import XLSX from 'xlsx';
 import db from './database.js';
-import jwt from 'jsonwebtoken';
-import { authenticateToken } from './middleware/auth.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your_fallback_secret_key_here';
 
 const router = express.Router();
 
 // Configure Multer for file upload
 const upload = multer({ dest: 'uploads/' });
-
-// Apply authentication middleware to all routes except /login (handled inside the middleware)
-router.use(authenticateToken);
-
-// Authentication Endpoint
-router.post('/login', (req, res) => {
-    const { username, password } = req.body;
-
-    const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
-    db.get(sql, [username, password], (err, user) => {
-        if (err) {
-            return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (user) {
-            // Sign JWT token
-            const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '24h' });
-            return res.json({ success: true, token });
-        }
-
-        res.status(401).json({ error: 'Invalid username or password' });
-    });
-});
-
-// Change Password Endpoint
-router.post('/change-password', (req, res) => {
-    const { username, oldPassword, newPassword } = req.body;
-
-    const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';
-    db.get(sql, [username, oldPassword], (err, user) => {
-        if (err) {
-            return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (!user) {
-            return res.status(401).json({ error: 'Invalid current password' });
-        }
-
-        const updateSql = 'UPDATE users SET password = ? WHERE id = ?';
-        db.run(updateSql, [newPassword, user.id], function (err) {
-            if (err) {
-                return res.status(500).json({ error: 'Failed to update password' });
-            }
-            res.json({ success: true, message: 'Password updated successfully' });
-        });
-    });
-});
 
 // GET all active orders
 router.get('/orders', (req, res) => {
@@ -232,39 +181,87 @@ router.post('/upload-financial', upload.single('file'), (req, res) => {
             return res.json({ message: 'No data found in file', success: 0, failed: 0 });
         }
 
-        const sql = `INSERT INTO dispatch_records (dispatchDate, lrNo, sourceLocation, finalDestination, poNumber, tons, truckNo, freight, loading, unloading, halt, fuelCost, driverFee, total)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const sql = `INSERT INTO dispatch_records (dispatchDate, invoiceNo, lrNo, sourceLocation, finalDestination, poNumber, tons, truckNo, dateOfArrival, deliveryDate, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee, total)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         let completed = 0;
         let errors = 0;
         let skipped = 0;
 
         rows.forEach((row) => {
-            // Flexible column name matching
-            let dispatchDate = row['Dispatch Date'] || row['dispatch date'] || row.DispatchDate || row.dispatchDate || row.Date || row.date || '';
-            const lrNo = row['Lr No'] || row['LR No'] || row['lr no'] || row.LrNo || row.lrNo || '';
-            const sourceLocation = row['Source Location'] || row['source location'] || row.SourceLocation || row.sourceLocation || row.Source || '';
-            const finalDestination = row['Final Destination'] || row['final destination'] || row.FinalDestination || row.finalDestination || row.Destination || '';
-            const poNumber = row['Po Number'] || row['PO Number'] || row['po number'] || row.PoNumber || row.poNumber || '';
-            const tons = parseFloat(row.Tons || row.tons || row.TONS || 0) || 0;
-            const truckNo = row['Truck  No'] || row['Truck No'] || row['truck no'] || row.TruckNo || row.truckNo || row['Truck Number'] || '';
-            const freight = parseFloat(row.Freight || row.freight || row.FREIGHT || 0) || 0;
-            const loading = parseFloat(row.Loading || row.loading || row.LOADING || 0) || 0;
-            const unloading = parseFloat(row.Unloading || row.unloading || row.UNLOADING || 0) || 0;
-            const halt = parseFloat(row.Halt || row.halt || row.HALT || 0) || 0;
-            const fuelCost = parseFloat(row['Fuel Cost'] || row.fuelCost || row.FuelCost || 0) || 0;
-            const driverFee = parseFloat(row['Driver Fee'] || row.driverFee || row.DriverFee || 0) || 0;
-            const total = parseFloat(row.Total || row.total || row.TOTAL || 0) || (freight + loading + unloading + halt);
-
-            // Handle Excel date serial numbers
-            if (typeof dispatchDate === 'number') {
-                const excelEpoch = new Date(1899, 11, 30);
-                const jsDate = new Date(excelEpoch.getTime() + dispatchDate * 86400000);
-                dispatchDate = jsDate.toISOString().split('T')[0];
+            // Normalize row keys to handle line breaks and spaces in Excel headers
+            const normRow = {};
+            for (let key in row) {
+                normRow[key.replace(/[\n\r]+/g, '').toUpperCase().trim()] = row[key];
             }
 
+            let dispatchDate = normRow['DISPATCH - DATE'] || normRow['DISPATCH-DATE'] || normRow['DISPATCH DATE'] || '';
+            const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICE.NO'] || '';
+            const lrNo = normRow['LR. NO'] || normRow['LR.NO'] || normRow['LR NO'] || '';
+            const sourceLocation = normRow['FROM'] || '';
+            const finalDestination = normRow['TO'] || '';
+            const poNumber = normRow['PO.NUMBER'] || normRow['PO NUMBER'] || '';
+            const tons = parseFloat(normRow['TONS']) || 0;
+            const truckNo = normRow['TRUCK.NO'] || normRow['TRUCK NO'] || '';
+
+            let dateOfArrival = normRow['DATE OF ARRIVAL'] || normRow['DATEOFARRIVAL'] || '';
+            let deliveryDate = normRow['DATE OF DELIVERY'] || normRow['DATEOFDELIVERY'] || '';
+
+            const freight = parseFloat(normRow['FREIGHT']) || 0;
+            const multiPoint = parseFloat(normRow['MULTI- POINT'] || normRow['MULTI-POINT'] || normRow['MULTIPOINT']) || 0;
+            const loading = parseFloat(normRow['LOADING']) || 0;
+
+            // Handle variations of UN LOADING and HALTING
+            const unloading = parseFloat(normRow['UN LOADING.'] || normRow['UN LOADING'] || normRow['UNLOADING']) || 0;
+            const halt = parseFloat(normRow['HALTING'] || normRow['HALT']) || 0;
+
+            const fuelCost = 0; // Default as not in this Excel template
+            const driverFee = 0; // Default as not in this Excel template
+
+            const total = parseFloat(normRow['TOTAL']) || (freight + multiPoint + loading + unloading + halt);
+
+            // Handle Excel date serial numbers
+            const parseExcelDate = (val) => {
+                if (!val) return val;
+                if (typeof val === 'number') {
+                    const excelEpoch = new Date(1899, 11, 30);
+                    const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
+                    return jsDate.toISOString().split('T')[0];
+                }
+
+                // Convert typical DD.MM.YY or DD.MM.YYYY to YYYY-MM-DD
+                if (typeof val === 'string') {
+                    const parts = val.split('.');
+                    if (parts.length === 3) {
+                        let year = parts[2];
+                        let month = parts[1].padStart(2, '0');
+                        let day = parts[0].padStart(2, '0');
+                        if (year.length === 2) {
+                            year = '20' + year; // Assuming 2000s
+                        }
+                        return `${year}-${month}-${day}`;
+                    }
+
+                    const slashParts = val.split('/');
+                    if (slashParts.length === 3) {
+                        let year = slashParts[2];
+                        let month = slashParts[1].padStart(2, '0');
+                        let day = slashParts[0].padStart(2, '0');
+                        if (year.length === 2) {
+                            year = '20' + year; // Assuming 2000s
+                        }
+                        return `${year}-${month}-${day}`;
+                    }
+                }
+                return val;
+            };
+
+            dispatchDate = parseExcelDate(dispatchDate);
+            dateOfArrival = parseExcelDate(dateOfArrival);
+            deliveryDate = parseExcelDate(deliveryDate);
+
             if (dispatchDate && truckNo) {
-                db.run(sql, [dispatchDate, lrNo, sourceLocation, finalDestination, poNumber, tons, truckNo, freight, loading, unloading, halt, fuelCost, driverFee, total], (err) => {
+                db.run(sql, [dispatchDate, invoiceNo, lrNo, sourceLocation, finalDestination, poNumber, tons, truckNo, dateOfArrival, deliveryDate, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee, total], (err) => {
                     if (err) errors++;
                     completed++;
 
@@ -400,42 +397,49 @@ router.get('/dispatch-records', (req, res) => {
 });
 // GET Filtered Dispatch Records
 router.get('/analytics/filtered-records', (req, res) => {
-    const { truckType, month, year, sourceLocation, minRevenue, maxRevenue, orderId } = req.query;
+    const { truckNo, invoiceNo, dispatchDate, deliveryDate, loading, unloading, freight, year } = req.query;
 
     let sql = `SELECT * FROM dispatch_records WHERE 1=1`;
     const params = [];
 
-    if (truckType) {
-        // We'll join or match Orders if "truckType" means 10-wheeler etc, 
-        // but simple dispatch_records only has truckNo. We'll search truckNo if provided.
+    if (truckNo) {
         sql += " AND truckNo LIKE ?";
-        params.push(`%${truckType}%`);
+        params.push(`%${truckNo}%`);
     }
 
     if (year) {
-        sql += " AND strftime('%Y', dispatchDate) = ?";
-        params.push(year);
+        sql += " AND dispatchDate LIKE ?";
+        params.push(`${year}%`);
     }
 
-    if (month) {
-        sql += " AND strftime('%m', dispatchDate) = ?";
-        // Ensure month is two digits
-        params.push(month.padStart(2, '0'));
+    if (invoiceNo) {
+        sql += " AND invoiceNo LIKE ?";
+        params.push(`%${invoiceNo}%`);
     }
 
-    if (sourceLocation) {
-        sql += " AND sourceLocation LIKE ?";
-        params.push(`%${sourceLocation}%`);
+    if (dispatchDate) {
+        sql += " AND dispatchDate = ?";
+        params.push(dispatchDate);
     }
 
-    if (minRevenue) {
-        sql += " AND (freight + loading + unloading + halt) >= ?";
-        params.push(parseFloat(minRevenue));
+    if (deliveryDate) {
+        sql += " AND deliveryDate = ?";
+        params.push(deliveryDate);
     }
 
-    if (maxRevenue) {
-        sql += " AND (freight + loading + unloading + halt) <= ?";
-        params.push(parseFloat(maxRevenue));
+    if (loading) {
+        sql += " AND loading = ?";
+        params.push(parseFloat(loading));
+    }
+
+    if (unloading) {
+        sql += " AND unloading = ?";
+        params.push(parseFloat(unloading));
+    }
+
+    if (freight) {
+        sql += " AND freight = ?";
+        params.push(parseFloat(freight));
     }
 
     sql += " ORDER BY dispatchDate DESC LIMIT 500";
@@ -452,15 +456,15 @@ router.get('/analytics/filtered-records', (req, res) => {
 // Update a single dispatch record (Inline Edit)
 router.put('/analytics/record/:id', async (req, res) => {
     const { id } = req.params;
-    const { dispatchDate, truckNo, sourceLocation, finalDestination, tons, freight, loading, unloading, halt, fuelCost, driverFee } = req.body;
+    const { dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination, dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee } = req.body;
 
-    const total = Number(freight) + Number(loading) + Number(unloading) + Number(halt);
+    const total = Number(freight || 0) + Number(multiPoint || 0) + Number(loading || 0) + Number(unloading || 0) + Number(halt || 0);
 
     const checkSql = `SELECT * FROM dispatch_records WHERE id = ?`;
     const updateSql = `
         UPDATE dispatch_records
-        SET dispatchDate = ?, truckNo = ?, sourceLocation = ?, finalDestination = ?,
-            tons = ?, freight = ?, loading = ?, unloading = ?, halt = ?,
+        SET dispatchDate = ?, invoiceNo = ?, lrNo = ?, poNumber = ?, truckNo = ?, sourceLocation = ?, finalDestination = ?,
+            dateOfArrival = ?, deliveryDate = ?, tons = ?, freight = ?, multiPoint = ?, loading = ?, unloading = ?, halt = ?,
             fuelCost = ?, driverFee = ?, total = ?
         WHERE id = ?
     `;
@@ -479,8 +483,8 @@ router.put('/analytics/record/:id', async (req, res) => {
 
         await new Promise((resolve, reject) => {
             db.run(updateSql, [
-                dispatchDate, truckNo, sourceLocation, finalDestination,
-                tons, freight, loading, unloading, halt,
+                dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination,
+                dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt,
                 fuelCost, driverFee, total, id
             ], function (err) {
                 if (err) reject(err);
@@ -542,6 +546,46 @@ router.delete('/reset-database', async (req, res) => {
         console.error('Error resetting database:', err.message);
         res.status(500).json({ error: 'Failed to reset database.' });
     }
+});
+
+// Create a new single dispatch record (Manual Entry)
+router.post('/analytics/record', async (req, res) => {
+    const { dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination, dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee } = req.body;
+
+    const total = Number(freight || 0) + Number(multiPoint || 0) + Number(loading || 0) + Number(unloading || 0) + Number(halt || 0);
+
+    const sql = `
+        INSERT INTO dispatch_records (dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination, dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee, total)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    db.run(sql, [
+        dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination,
+        dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt,
+        fuelCost, driverFee, total
+    ], function (err) {
+        if (err) {
+            console.error('Error creating record:', err.message);
+            return res.status(500).json({ error: 'Failed to create record' });
+        }
+        res.json({ message: 'Record created successfully', id: this.lastID, total });
+    });
+});
+
+// Contact form email mock route
+router.post('/contact', (req, res) => {
+    const { name, email, mobile, subject, message } = req.body;
+
+    // In a production app, you would use Nodemailer or an SMTP service like SendGrid here.
+    console.log('--- NEW CONTACT FORM SUBMISSION ---');
+    console.log(`From: ${name || 'N/A'} <${email}>`);
+    console.log(`Mobile: ${mobile}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Message: ${message}`);
+    console.log('Sending email to: ponniammantransport2023@gmail.com');
+    console.log('-----------------------------------');
+
+    res.json({ success: true, message: 'Message sent successfully' });
 });
 
 export default router;

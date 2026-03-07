@@ -18,6 +18,9 @@ let dbWrapper = {
     },
     all: async (query, params = []) => {
         throw new Error("Database not initialized");
+    },
+    get: async (query, params = []) => {
+        throw new Error("Database not initialized");
     }
 };
 
@@ -47,6 +50,10 @@ const initializeDatabase = async () => {
             const res = await dbWrapper.pool.query(pgFormat(query), params);
             return res.rows;
         };
+        dbWrapper.get = async (query, params = []) => {
+            const res = await dbWrapper.pool.query(pgFormat(query), params);
+            return res.rows[0];
+        };
 
     } else {
         console.log("🪶 Connecting to local SQLite database...");
@@ -68,6 +75,14 @@ const initializeDatabase = async () => {
                 db.all(query, params, (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows);
+                });
+            });
+        };
+        dbWrapper.get = (query, params = []) => {
+            return new Promise((resolve, reject) => {
+                db.get(query, params, (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
                 });
             });
         };
@@ -107,13 +122,17 @@ const createTables = async () => {
             CREATE TABLE IF NOT EXISTS dispatch_records (
                 id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
                 dispatchDate DATE NOT NULL,
+                invoiceNo VARCHAR(100),
                 lrNo VARCHAR(100),
                 sourceLocation VARCHAR(255),
                 finalDestination VARCHAR(255),
                 poNumber VARCHAR(100),
                 tons DECIMAL(10, 2),
                 truckNo VARCHAR(100),
+                dateOfArrival DATE,
+                deliveryDate DATE,
                 freight DECIMAL(15, 2),
+                multiPoint DECIMAL(15, 2),
                 loading DECIMAL(15, 2),
                 unloading DECIMAL(15, 2),
                 halt DECIMAL(15, 2),
@@ -132,6 +151,18 @@ const createTables = async () => {
         `);
 
         if (dbWrapper.type === 'sqlite') {
+            try {
+                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN invoiceNo VARCHAR(100);`);
+            } catch (err) { /* column exists */ }
+            try {
+                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN deliveryDate DATE;`);
+            } catch (err) { /* column exists */ }
+            try {
+                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN dateOfArrival DATE;`);
+            } catch (err) { /* column exists */ }
+            try {
+                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN multiPoint DECIMAL(15, 2) DEFAULT 0;`);
+            } catch (err) { /* column exists */ }
             try {
                 await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN fuelCost DECIMAL(15, 2) DEFAULT 0;`);
             } catch (err) { /* column exists */ }
@@ -169,6 +200,11 @@ const db = {
     all: (q, p, cb) => {
         dbWrapper.all(q, p)
             .then(rows => cb(null, rows))
+            .catch(err => cb(err, null));
+    },
+    get: (q, p, cb) => {
+        dbWrapper.get(q, p)
+            .then(row => cb(null, row))
             .catch(err => cb(err, null));
     }
 };

@@ -4,8 +4,8 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'your_fallback_secret_key_here';
 
 export const authenticateToken = (req, res, next) => {
-    // Check if the request is for the login route
-    if (req.path === '/login') {
+    // Check if the request is for public auth routes
+    if (req.path === '/login' || req.path === '/change-password') {
         return next();
     }
 
