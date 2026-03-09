@@ -17,13 +17,13 @@ const Contact = () => {
         setStatus(null);
 
         try {
-            const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'YOUR_SERVICE_ID';
-            const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY';
+            const serviceId = 'service_m36m2ub'; // Replace with your actual Service ID
+            const publicKey = 'PYhVpTRBPQuAL1HDX'; // Replace with your actual Public Key
 
             // 1. Send Admin Notification Email
             await emailjs.sendForm(
                 serviceId,
-                import.meta.env.VITE_EMAILJS_ADMIN_TEMPLATE_ID || 'admin_template',
+                'admin_template', // Replaced with your admin template ID
                 form.current,
                 publicKey
             );
@@ -31,7 +31,7 @@ const Contact = () => {
             // 2. Send User Confirmation Email
             await emailjs.sendForm(
                 serviceId,
-                import.meta.env.VITE_EMAILJS_USER_TEMPLATE_ID || 'user_template',
+                'user_template', // Replaced with your user template ID
                 form.current,
                 publicKey
             );
