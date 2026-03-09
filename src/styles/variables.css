@@ -1,6 +1,6 @@
 :root {
   /* ==========================================================
-     KN LOGISTICS - WHITE/LIGHT GREEN THEME
+     KN LOGISTICS - LIGHT THEME (DEFAULT)
      ========================================================== */
 
   /* Light Backgrounds */
@@ -83,7 +83,7 @@
   --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.4);
 }
 
-/* Optional Dark Mode - keeping for the toggle functionality but restyling to match green branding */
+/* Dark Mode Overrides */
 :root[data-theme="dark"] {
   --color-bg-primary: #0f172a;
   --color-bg-secondary: #1e293b;
@@ -118,7 +118,7 @@ body {
   color: var(--color-text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  transition: background-color var(--transition-slow), color var(--transition-slow);
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 a {

@@ -5,6 +5,7 @@ import fs from 'fs';
 import XLSX from 'xlsx';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 import db from './database.js';
 
 const router = express.Router();
@@ -697,19 +698,64 @@ router.post('/analytics/record', verifyToken, async (req, res) => {
 });
 
 // Contact form email mock route
-router.post('/contact', (req, res) => {
+router.post('/contact', async (req, res) => {
     const { name, email, mobile, subject, message } = req.body;
 
-    // In a production app, you would use Nodemailer or an SMTP service like SendGrid here.
     console.log('--- NEW CONTACT FORM SUBMISSION ---');
     console.log(`From: ${name || 'N/A'} <${email}>`);
     console.log(`Mobile: ${mobile}`);
     console.log(`Subject: ${subject}`);
     console.log(`Message: ${message}`);
-    console.log('Sending email to: ponniammantransport2023@gmail.com');
+    console.log('Attempting to send email via Nodemailer...');
     console.log('-----------------------------------');
 
-    res.json({ success: true, message: 'Message sent successfully' });
+    // Make sure we have credentials configured
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.warn('EMAIL_USER or EMAIL_PASS not set in environment. Skipping actual email delivery.');
+        return res.json({
+            success: true,
+            message: 'Your message was received (Delivered to logs only - missing email setup).'
+        });
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: 'ponniammantransport2023@gmail.com', // Destination email
+            replyTo: email,
+            subject: `New Contact Form Submission: ${subject}`,
+            text: `You have received a new message from the contact form.\n\nName: ${name}\nEmail: ${email}\nMobile: ${mobile}\nSubject: ${subject}\nMessage:\n${message}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: #10b981;">New Contact Form Submission</h2>
+                    <p><strong>Name:</strong> ${name}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Mobile:</strong> ${mobile}</p>
+                    <p><strong>Subject:</strong> ${subject}</p>
+                    <p><strong>Message:</strong></p>
+                    <div style="background: #f4fdf4; padding: 15px; border-left: 4px solid #10b981; margin-top: 10px;">
+                        ${message.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Email successfully sent:', info.messageId);
+
+        res.json({ success: true, message: 'Message sent successfully' });
+    } catch (error) {
+        console.error('Nodemailer Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to send message via email server' });
+    }
 });
 
 export default router;

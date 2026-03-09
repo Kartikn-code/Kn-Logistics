@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Phone, Mail, MapPin, Clock, Loader2 } from 'lucide-react';
+import emailjs from '@emailjs/browser';
 import Button from '../components/UI/Button';
 import Card from '../components/UI/Card';
 import styles from './Contact.module.css';
@@ -8,39 +9,31 @@ const Contact = () => {
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null); // { type: 'success' | 'error', message: string }
 
+    const form = useRef();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setStatus(null);
 
-        const formData = {
-            name: e.target.name.value,
-            email: e.target.email.value,
-            mobile: e.target.mobile.value,
-            subject: e.target.subject.value,
-            message: e.target.message.value
-        };
-
         try {
-            const response = await fetch('/api/contact', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
+            // Using EmailJS to send directly from frontend
+            const result = await emailjs.sendForm(
+                import.meta.env.VITE_EMAILJS_SERVICE_ID || 'YOUR_SERVICE_ID',
+                import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'YOUR_TEMPLATE_ID',
+                form.current,
+                import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY'
+            );
 
-            const data = await response.json();
-
-            if (response.ok) {
-                setStatus({ type: 'success', message: 'Thank you! Your message has been sent successfully.' });
-                e.target.reset(); // Clear the form
-            } else {
-                setStatus({ type: 'error', message: data.error || 'Failed to send message.' });
-            }
+            console.log('EmailJS Success:', result.text);
+            setStatus({ type: 'success', message: 'Thank you! Your message has been sent successfully.' });
+            e.target.reset(); // Clear the form
         } catch (error) {
-            setStatus({ type: 'error', message: 'Could not connect to the server. Please try again later.' });
+            console.error('EmailJS Error:', error.text || error);
+            setStatus({ type: 'error', message: 'Could not connect to the email server. Please try again later.' });
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     return (
@@ -81,8 +74,8 @@ const Contact = () => {
                                     <div className={styles.iconBox}><MapPin size={24} /></div>
                                     <div>
                                         <h3>Headquarters</h3>
-                                        <p>123 Logistics Avenue,</p>
-                                        <p>Industrial Estate, Guindy,</p>
+                                        <p>No 80,</p>
+                                        <p>Kamatchipuram 3rd Street,Thiruverkadu</p>
                                         <p>Chennai, Tamil Nadu - 600032</p>
                                     </div>
                                 </div>
@@ -100,30 +93,30 @@ const Contact = () => {
                         <div className={styles.formColumn}>
                             <Card className={styles.formCard}>
                                 <h2>Send Message</h2>
-                                <form onSubmit={handleSubmit} className={styles.form}>
+                                <form ref={form} onSubmit={handleSubmit} className={styles.form}>
                                     <div className={styles.formGroup}>
                                         <label htmlFor="name">Full Name</label>
-                                        <input type="text" id="name" required placeholder="John Doe" />
+                                        <input type="text" id="name" name="name" required placeholder="Karthikeyan S" />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label htmlFor="email">Email Address</label>
-                                        <input type="email" id="email" required placeholder="john@example.com" />
+                                        <input type="email" id="email" name="email" required placeholder="Example@gmail.com" />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label htmlFor="mobile">Mobile Number</label>
-                                        <input type="tel" id="mobile" required placeholder="+91 9876543210" />
+                                        <input type="tel" id="mobile" name="mobile" required placeholder="+91 9845645454" />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label htmlFor="subject">Subject</label>
-                                        <select id="subject">
-                                            <option value="quote">Request a Quote</option>
-                                            <option value="tracking">Tracking Issue</option>
-                                            <option value="general">General Inquiry</option>
+                                        <select id="subject" name="subject">
+                                            <option value="Request a Quote">Request a Quote</option>
+                                            <option value="Tracking Issue">Tracking Issue</option>
+                                            <option value="General Inquiry">General Inquiry</option>
                                         </select>
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label htmlFor="message">Message</label>
-                                        <textarea id="message" rows="4" required placeholder="How can we help you?"></textarea>
+                                        <textarea id="message" name="message" rows="4" required placeholder="How can we help you?"></textarea>
                                     </div>
                                     <Button type="submit" size="lg" style={{ width: '100%' }} disabled={loading}>
                                         {loading ? <Loader2 className="spinner" size={18} /> : 'Send Message'}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CalendarDays, Filter, Search, TrendingUp, TrendingDown, DollarSign, Package, Truck, Activity, ChevronDown } from 'lucide-react';
+import { CalendarDays, Filter, Search, TrendingUp, TrendingDown, DollarSign, Package, Truck, Activity, ChevronDown, X } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
@@ -71,6 +71,19 @@ const Dashboard = () => {
         if (e) e.preventDefault();
         setIsFiltering(true);
         const data = await getFilteredRecords({ ...filters, year: selectedYear });
+        setFilteredRecords(data);
+        setIsFiltering(false);
+    };
+
+    const handleClearFilters = async () => {
+        const clearedFilters = {
+            truckNo: '',
+            invoiceNo: '',
+            dispatchDate: '',
+        };
+        setFilters(clearedFilters);
+        setIsFiltering(true);
+        const data = await getFilteredRecords({ ...clearedFilters, year: selectedYear });
         setFilteredRecords(data);
         setIsFiltering(false);
     };
@@ -208,7 +221,8 @@ const Dashboard = () => {
                                 </div>
                             </div>
                             <div className={styles.formRow} style={{ marginTop: '1rem', marginBottom: '1.5rem' }}>
-                                <div className={styles.formActions} style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
+                                <div className={styles.formActions} style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px', gap: '10px' }}>
+                                    <Button type="button" onClick={handleClearFilters} disabled={isFiltering} variant="secondary" style={{ backgroundColor: '#475569', color: '#f8fafc' }}><X size={16} /> Clear</Button>
                                     <Button type="submit" disabled={isFiltering}><Search size={16} /> Apply Filters</Button>
                                 </div>
                             </div>
@@ -240,7 +254,11 @@ const Dashboard = () => {
                                     {isFiltering ? (
                                         <tr><td colSpan="15" style={{ textAlign: 'center', padding: '2rem' }}>Loading...</td></tr>
                                     ) : filteredRecords.length > 0 ? (
-                                        filteredRecords.map((record) => (
+                                        [...filteredRecords].sort((a, b) => {
+                                            if (!a.invoiceNo) return 1;
+                                            if (!b.invoiceNo) return -1;
+                                            return String(a.invoiceNo).localeCompare(String(b.invoiceNo), undefined, { numeric: true, sensitivity: 'base' });
+                                        }).map((record) => (
                                             <tr key={record.id}>
                                                 <td>{record.invoiceNo || '-'}</td>
                                                 <td>{formatDate(record.dispatchDate)}</td>

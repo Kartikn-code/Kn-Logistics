@@ -9,13 +9,17 @@
     z-index: 1000;
     display: flex;
     align-items: center;
+    font-family: "Quicksand", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
 }
 
 .scrolled {
-    background-color: rgba(15, 16, 21, 0.85);
+    background-color: rgba(0, 0, 0, 0.987);
     /* Deep dark blur */
     backdrop-filter: blur(12px);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 30px rgba(203, 21, 21, 0.5);
     border-bottom: 1px solid var(--glass-border);
     height: 60px;
 }
@@ -53,11 +57,25 @@
     transition: all var(--transition-fast);
     padding: 0.5rem 1rem;
     border-radius: var(--radius-full);
+    font-family: inherit;
+    text-decoration: none;
 }
 
 .navLink:hover {
     color: var(--color-text-primary);
     background: rgba(255, 255, 255, 0.05);
+}
+
+.scrolled .navLink {
+    color: #ffffff;
+}
+
+.scrolled .logo {
+    color: #ffffff;
+}
+
+.scrolled .themeToggleBtn {
+    color: #ffffff;
 }
 
 .navLink.active {

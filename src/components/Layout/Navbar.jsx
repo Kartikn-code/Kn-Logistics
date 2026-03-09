@@ -9,7 +9,7 @@ const Navbar = () => {
     const [scrolled, setScrolled] = useState(false);
 
     // Theme State
-    const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+    const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
 
     useEffect(() => {
         const handleScroll = () => {
@@ -20,8 +20,8 @@ const Navbar = () => {
     }, []);
 
     useEffect(() => {
-        if (theme === 'light') {
-            document.documentElement.setAttribute('data-theme', 'light');
+        if (theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
         } else {
             document.documentElement.removeAttribute('data-theme');
         }
@@ -33,7 +33,7 @@ const Navbar = () => {
     };
 
     const navLinks = [
-        { name: 'Dashboard', path: '/' },
+        { name: 'Home', path: '/' },
         { name: 'Admin', path: '/admin' },
         { name: 'Services', path: '/services' },
         { name: 'Contact', path: '/contact' },
