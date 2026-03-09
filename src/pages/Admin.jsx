@@ -316,6 +316,17 @@ const Admin = () => {
                                 </tr>
                             )}
                         </tbody>
+                        {records.length > 0 && (
+                            <tfoot>
+                                <tr>
+                                    <td colSpan="15" style={{ textAlign: 'right', fontWeight: 'bold', paddingRight: '1rem', color: 'var(--color-text-primary)' }}>Grand Total:</td>
+                                    <td className={styles.cellBold} style={{ color: "var(--color-primary)", fontSize: '1.05rem' }}>
+                                        ₹{records.reduce((sum, record) => sum + (Number(record.total) || 0), 0).toFixed(2)}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        )}
                     </table>
                 </div>
             </div>

@@ -68,7 +68,7 @@ const ParticleBackground = () => {
 
         const initParticles = () => {
             particles = [];
-            const particleCount = Math.min(window.innerWidth * 0.1, 100); // Responsive count
+            const particleCount = Math.min(window.innerWidth * 0.05, 35); // Optimized for better performance
             for (let i = 0; i < particleCount; i++) {
                 particles.push(new Particle(canvas.width, canvas.height));
             }
@@ -94,22 +94,7 @@ const ParticleBackground = () => {
                 particle.draw(ctx);
             });
 
-            // Draw connections
-            ctx.strokeStyle = 'rgba(96, 165, 250, 0.15)';
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x;
-                    const dy = particles[i].y - particles[j].y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < 100) {
-                        ctx.beginPath();
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
-                    }
-                }
-            }
+            // Removed connection lines for massive FPS improvements
 
             animationFrameId = requestAnimationFrame(animate);
         };

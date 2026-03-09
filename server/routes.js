@@ -276,102 +276,113 @@ router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) 
         let errors = 0;
         let skipped = 0;
 
-        rows.forEach((row) => {
-            // Normalize row keys to handle line breaks and spaces in Excel headers
-            const normRow = {};
-            for (let key in row) {
-                normRow[key.replace(/[\n\r]+/g, '').toUpperCase().trim()] = row[key];
+        const processRows = async () => {
+            for (const row of rows) {
+                // Normalize row keys to handle line breaks and spaces in Excel headers
+                const normRow = {};
+                for (let key in row) {
+                    normRow[key.replace(/[\n\r]+/g, '').toUpperCase().trim()] = row[key];
+                }
+
+                let dispatchDate = normRow['DISPATCH - DATE'] || normRow['DISPATCH-DATE'] || normRow['DISPATCH DATE'] || normRow['DISPATCHDATE'] || normRow['DATE'] || '';
+                const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICE.NO'] || normRow['INVOICE NO.'] || normRow['INVOICENO.'] || normRow['INVOICENO'] || '';
+                const lrNo = normRow['LR. NO'] || normRow['LR.NO'] || normRow['LR NO'] || normRow['LRNO'] || '';
+                const sourceLocation = normRow['FROM'] || normRow['SOURCELOCATION'] || normRow['SOURCE'] || '';
+                const finalDestination = normRow['TO'] || normRow['FINALDESTINATION'] || normRow['DESTINATION'] || '';
+                const poNumber = normRow['PO.NUMBER'] || normRow['PO NUMBER'] || normRow['PONUMBER'] || '';
+                const tons = parseFloat(normRow['TONS'] || normRow['WEIGHT']) || 0;
+                const truckNo = normRow['TRUCK.NO'] || normRow['TRUCK NO'] || normRow['TRUCKNO'] || normRow['VEHICLENO'] || '';
+
+                let dateOfArrival = normRow['DATE OF ARRIVAL'] || normRow['DATEOFARRIVAL'] || normRow['ARRIVALDATE'] || '';
+                let deliveryDate = normRow['DATE OF DELIVERY'] || normRow['DATEOFDELIVERY'] || normRow['DELIVERYDATE'] || '';
+
+                const freight = parseFloat(normRow['FREIGHT']) || 0;
+                const multiPoint = parseFloat(normRow['MULTI- POINT'] || normRow['MULTI-POINT'] || normRow['MULTIPOINT']) || 0;
+                const loading = parseFloat(normRow['LOADING']) || 0;
+
+                // Handle variations of UN LOADING and HALTING
+                const unloading = parseFloat(normRow['UN LOADING.'] || normRow['UN LOADING'] || normRow['UNLOADING']) || 0;
+                const halt = parseFloat(normRow['HALTING'] || normRow['HALT']) || 0;
+
+                const fuelCost = 0; // Default as not in this Excel template
+                const driverFee = 0; // Default as not in this Excel template
+
+                const total = parseFloat(normRow['TOTAL']) || (freight + multiPoint + loading + unloading + halt);
+
+                // Handle Excel date serial numbers
+                const parseExcelDate = (val) => {
+                    if (!val) return val;
+                    if (typeof val === 'number') {
+                        const excelEpoch = new Date(1899, 11, 30);
+                        const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
+                        return jsDate.toISOString().split('T')[0];
+                    }
+
+                    // Convert typical DD.MM.YY or DD.MM.YYYY to YYYY-MM-DD
+                    if (typeof val === 'string') {
+                        const parts = val.split('.');
+                        if (parts.length === 3) {
+                            let year = parts[2];
+                            let month = parts[1].padStart(2, '0');
+                            let day = parts[0].padStart(2, '0');
+                            if (year.length === 2) {
+                                year = '20' + year; // Assuming 2000s
+                            }
+                            return `${year}-${month}-${day}`;
+                        }
+
+                        const slashParts = val.split('/');
+                        if (slashParts.length === 3) {
+                            let year = slashParts[2];
+                            let month = slashParts[1].padStart(2, '0');
+                            let day = slashParts[0].padStart(2, '0');
+                            if (year.length === 2) {
+                                year = '20' + year; // Assuming 2000s
+                            }
+                            return `${year}-${month}-${day}`;
+                        }
+                    }
+                    return val;
+                };
+
+                dispatchDate = parseExcelDate(dispatchDate) || null;
+                dateOfArrival = parseExcelDate(dateOfArrival) || null;
+                deliveryDate = parseExcelDate(deliveryDate) || null;
+
+                if (dispatchDate && truckNo) {
+                    try {
+                        await new Promise((resolve, reject) => {
+                            db.run(sql, [dispatchDate, invoiceNo, lrNo, sourceLocation, finalDestination, poNumber, tons, truckNo, dateOfArrival, deliveryDate, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee, total], (err) => {
+                                if (err) {
+                                    errors++;
+                                    reject(err);
+                                } else {
+                                    completed++;
+                                    resolve();
+                                }
+                            });
+                        });
+                    } catch (e) {
+                        // Proceed with loop even if error
+                    }
+                } else {
+                    skipped++;
+                }
             }
 
-            let dispatchDate = normRow['DISPATCH - DATE'] || normRow['DISPATCH-DATE'] || normRow['DISPATCH DATE'] || normRow['DISPATCHDATE'] || normRow['DATE'] || '';
-            const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICE.NO'] || normRow['INVOICE NO.'] || normRow['INVOICENO.'] || normRow['INVOICENO'] || '';
-            const lrNo = normRow['LR. NO'] || normRow['LR.NO'] || normRow['LR NO'] || normRow['LRNO'] || '';
-            const sourceLocation = normRow['FROM'] || normRow['SOURCELOCATION'] || normRow['SOURCE'] || '';
-            const finalDestination = normRow['TO'] || normRow['FINALDESTINATION'] || normRow['DESTINATION'] || '';
-            const poNumber = normRow['PO.NUMBER'] || normRow['PO NUMBER'] || normRow['PONUMBER'] || '';
-            const tons = parseFloat(normRow['TONS'] || normRow['WEIGHT']) || 0;
-            const truckNo = normRow['TRUCK.NO'] || normRow['TRUCK NO'] || normRow['TRUCKNO'] || normRow['VEHICLENO'] || '';
-
-            let dateOfArrival = normRow['DATE OF ARRIVAL'] || normRow['DATEOFARRIVAL'] || normRow['ARRIVALDATE'] || '';
-            let deliveryDate = normRow['DATE OF DELIVERY'] || normRow['DATEOFDELIVERY'] || normRow['DELIVERYDATE'] || '';
-
-            const freight = parseFloat(normRow['FREIGHT']) || 0;
-            const multiPoint = parseFloat(normRow['MULTI- POINT'] || normRow['MULTI-POINT'] || normRow['MULTIPOINT']) || 0;
-            const loading = parseFloat(normRow['LOADING']) || 0;
-
-            // Handle variations of UN LOADING and HALTING
-            const unloading = parseFloat(normRow['UN LOADING.'] || normRow['UN LOADING'] || normRow['UNLOADING']) || 0;
-            const halt = parseFloat(normRow['HALTING'] || normRow['HALT']) || 0;
-
-            const fuelCost = 0; // Default as not in this Excel template
-            const driverFee = 0; // Default as not in this Excel template
-
-            const total = parseFloat(normRow['TOTAL']) || (freight + multiPoint + loading + unloading + halt);
-
-            // Handle Excel date serial numbers
-            const parseExcelDate = (val) => {
-                if (!val) return val;
-                if (typeof val === 'number') {
-                    const excelEpoch = new Date(1899, 11, 30);
-                    const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
-                    return jsDate.toISOString().split('T')[0];
-                }
-
-                // Convert typical DD.MM.YY or DD.MM.YYYY to YYYY-MM-DD
-                if (typeof val === 'string') {
-                    const parts = val.split('.');
-                    if (parts.length === 3) {
-                        let year = parts[2];
-                        let month = parts[1].padStart(2, '0');
-                        let day = parts[0].padStart(2, '0');
-                        if (year.length === 2) {
-                            year = '20' + year; // Assuming 2000s
-                        }
-                        return `${year}-${month}-${day}`;
-                    }
-
-                    const slashParts = val.split('/');
-                    if (slashParts.length === 3) {
-                        let year = slashParts[2];
-                        let month = slashParts[1].padStart(2, '0');
-                        let day = slashParts[0].padStart(2, '0');
-                        if (year.length === 2) {
-                            year = '20' + year; // Assuming 2000s
-                        }
-                        return `${year}-${month}-${day}`;
-                    }
-                }
-                return val;
-            };
-
-            dispatchDate = parseExcelDate(dispatchDate) || null;
-            dateOfArrival = parseExcelDate(dateOfArrival) || null;
-            deliveryDate = parseExcelDate(deliveryDate) || null;
-
-            if (dispatchDate && truckNo) {
-                db.run(sql, [dispatchDate, invoiceNo, lrNo, sourceLocation, finalDestination, poNumber, tons, truckNo, dateOfArrival, deliveryDate, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee, total], (err) => {
-                    if (err) errors++;
-                    completed++;
-
-                    if (completed + skipped === rows.length && !res.headersSent) {
-                        res.json({
-                            message: `Processed ${rows.length} rows`,
-                            success: completed - errors,
-                            failed: errors,
-                            skipped: skipped
-                        });
-                    }
+            if (!res.headersSent) {
+                res.json({
+                    message: `Processed ${rows.length} rows`,
+                    success: completed,
+                    failed: errors,
+                    skipped: skipped
                 });
-            } else {
-                skipped++;
-                if (completed + skipped === rows.length && !res.headersSent) {
-                    res.json({
-                        message: `Processed ${rows.length} rows`,
-                        success: completed - errors,
-                        failed: errors,
-                        skipped: skipped
-                    });
-                }
+            }
+        };
+
+        processRows().catch(error => {
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Failed to process rows sequentially.' });
             }
         });
     } catch (error) {
@@ -480,7 +491,7 @@ router.get('/analytics/monthly-earnings', verifyToken, (req, res) => {
 
 // GET all dispatch records
 router.get('/dispatch-records', verifyToken, (req, res) => {
-    const sql = 'SELECT * FROM dispatch_records ORDER BY dispatchDate DESC LIMIT 200';
+    const sql = 'SELECT * FROM dispatch_records ORDER BY dispatchDate DESC, id DESC';
     db.all(sql, [], (err, rows) => {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -553,7 +564,7 @@ router.get('/analytics/filtered-records', verifyToken, (req, res) => {
         params.push(parseFloat(freight));
     }
 
-    sql += " ORDER BY dispatchDate DESC LIMIT 500";
+    sql += " ORDER BY dispatchDate DESC, id DESC";
 
     db.all(sql, params, (err, rows) => {
         if (err) {

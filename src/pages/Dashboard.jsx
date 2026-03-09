@@ -238,7 +238,7 @@ const Dashboard = () => {
                                 </thead>
                                 <tbody>
                                     {isFiltering ? (
-                                        <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>Loading...</td></tr>
+                                        <tr><td colSpan="15" style={{ textAlign: 'center', padding: '2rem' }}>Loading...</td></tr>
                                     ) : filteredRecords.length > 0 ? (
                                         filteredRecords.map((record) => (
                                             <tr key={record.id}>
@@ -260,9 +260,21 @@ const Dashboard = () => {
                                             </tr>
                                         ))
                                     ) : (
-                                        <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>No records match these filters.</td></tr>
+                                        <tr><td colSpan="15" style={{ textAlign: 'center', padding: '2rem' }}>No records match these filters.</td></tr>
                                     )}
                                 </tbody>
+                                {!isFiltering && filteredRecords.length > 0 && (
+                                    <tfoot>
+                                        <tr style={{ borderTop: '2px solid var(--color-border)' }}>
+                                            <td colSpan="14" style={{ textAlign: 'right', fontWeight: 'bold', paddingRight: '1rem', color: 'var(--color-text-primary)' }}>
+                                                Grand Total:
+                                            </td>
+                                            <td style={{ fontWeight: 600, color: '#10b981', fontSize: '1.05rem' }}>
+                                                {formatCurrency(filteredRecords.reduce((sum, record) => sum + (Number(record.total) || 0), 0))}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                )}
                             </table>
                         </div>
                     </Card>

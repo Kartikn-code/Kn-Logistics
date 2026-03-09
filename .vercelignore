@@ -1,0 +1,8 @@
+.git
+.DS_Store
+_backup/
+README.md
+eslint.config.js
+app.yaml
+.gitignore
+.vercelignore
