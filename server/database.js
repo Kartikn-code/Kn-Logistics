@@ -241,6 +241,11 @@ const createTables = async () => {
             )
         `);
 
+        // Create indexes for better query performance
+        await dbWrapper.run(`CREATE INDEX IF NOT EXISTS idx_dispatch_date ON dispatch_records(dispatchDate)`);
+        await dbWrapper.run(`CREATE INDEX IF NOT EXISTS idx_truck_no ON dispatch_records(truckNo)`);
+
+
         await dbWrapper.run(`
             CREATE TABLE IF NOT EXISTS users (
                 id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
