@@ -18,7 +18,7 @@ const Contact = () => {
 
         try {
             const serviceId = 'service_m36m2ub'; // Replace with your actual Service ID
-            const publicKey = 'PYhVpTRBPQuAL1HDX'; // Replace with your actual Public Key
+            const publicKey = 'sjYV23tYneXD3eLTD'; // Replace with your actual Public Key
 
             // 1. Send Admin Notification Email
             await emailjs.sendForm(
