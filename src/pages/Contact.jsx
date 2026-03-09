@@ -17,15 +17,26 @@ const Contact = () => {
         setStatus(null);
 
         try {
-            // Using EmailJS to send directly from frontend
-            const result = await emailjs.sendForm(
-                import.meta.env.VITE_EMAILJS_SERVICE_ID || 'YOUR_SERVICE_ID',
-                import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'YOUR_TEMPLATE_ID',
+            const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'YOUR_SERVICE_ID';
+            const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY';
+
+            // 1. Send Admin Notification Email
+            await emailjs.sendForm(
+                serviceId,
+                import.meta.env.VITE_EMAILJS_ADMIN_TEMPLATE_ID || 'admin_template',
                 form.current,
-                import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY'
+                publicKey
             );
 
-            console.log('EmailJS Success:', result.text);
+            // 2. Send User Confirmation Email
+            await emailjs.sendForm(
+                serviceId,
+                import.meta.env.VITE_EMAILJS_USER_TEMPLATE_ID || 'user_template',
+                form.current,
+                publicKey
+            );
+
+            console.log('Emails successfully sent.');
             setStatus({ type: 'success', message: 'Thank you! Your message has been sent successfully.' });
             e.target.reset(); // Clear the form
         } catch (error) {
