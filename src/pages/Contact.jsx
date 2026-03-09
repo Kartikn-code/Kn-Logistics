@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Phone, Mail, MapPin, Clock, Loader2 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import Button from '../components/UI/Button';
@@ -10,6 +10,10 @@ const Contact = () => {
     const [status, setStatus] = useState(null); // { type: 'success' | 'error', message: string }
 
     const form = useRef();
+
+    useEffect(() => {
+        emailjs.init('7uX-nd_Rwr3cuMwCW');
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -23,7 +27,7 @@ const Contact = () => {
             // 1. Send Admin Notification Email
             await emailjs.sendForm(
                 serviceId,
-                'admin_template', // Replaced with your admin template ID
+                'template_vm69sd4', // Replaced with your admin template ID
                 form.current,
                 publicKey
             );
@@ -31,7 +35,7 @@ const Contact = () => {
             // 2. Send User Confirmation Email
             await emailjs.sendForm(
                 serviceId,
-                'user_template', // Replaced with your user template ID
+                'template_duqktor', // Replaced with your user template ID
                 form.current,
                 publicKey
             );
