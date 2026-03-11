@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Phone, Mail, MapPin, Clock, Loader2 } from 'lucide-react';
-import emailjs from '@emailjs/browser';
+// import emailjs from '@emailjs/browser';
 import Button from '../components/UI/Button';
 import Card from '../components/UI/Card';
 import styles from './Contact.module.css';
@@ -12,7 +12,7 @@ const Contact = () => {
     const form = useRef();
 
     useEffect(() => {
-        emailjs.init('7uX-nd_Rwr3cuMwCW');
+        // emailjs.init('7uX-nd_Rwr3cuMwCW'); // Removed as we use REST API
     }, []);
 
     const handleSubmit = async (e) => {
@@ -21,30 +21,49 @@ const Contact = () => {
         setStatus(null);
 
         try {
-            const serviceId = 'service_ecma0ut'; // Replace with your actual Service ID
-            const publicKey = '7uX-nd_Rwr3cuMwCW'; // Replace with your actual Public Key
+            const serviceId = 'service_ecma0ut';
+            const publicKey = '7uX-nd_Rwr3cuMwCW';
+            const url = 'https://api.emailjs.com/api/v1.0/email/send';
+
+            // Extract form data
+            const formData = new FormData(form.current);
+            const templateParams = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                mobile: formData.get('mobile'),
+                subject: formData.get('subject'),
+                message: formData.get('message'),
+            };
 
             // 1. Send Admin Notification Email
-            await emailjs.sendForm(
-                serviceId,
-                'template_vm69sd4', // Replaced with your admin template ID
-                form.current,
-                publicKey
-            );
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    service_id: serviceId,
+                    template_id: 'template_vm69sd4',
+                    user_id: publicKey,
+                    template_params: templateParams
+                })
+            });
 
             // 2. Send User Confirmation Email
-            await emailjs.sendForm(
-                serviceId,
-                'template_duqktor', // Replaced with your user template ID
-                form.current,
-                publicKey
-            );
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    service_id: serviceId,
+                    template_id: 'template_duqktor',
+                    user_id: publicKey,
+                    template_params: templateParams
+                })
+            });
 
             console.log('Emails successfully sent.');
             setStatus({ type: 'success', message: 'Thank you! Your message has been sent successfully.' });
             e.target.reset(); // Clear the form
         } catch (error) {
-            console.error('EmailJS Error:', error.text || error);
+            console.error('EmailJS Error:', error);
             setStatus({ type: 'error', message: 'Could not connect to the email server. Please try again later.' });
         } finally {
             setLoading(false);

@@ -92,7 +92,7 @@ const Home = () => {
                             <p>Contact us today for a quote or to schedule a pickup.</p>
                             <div className={styles.contactInfo}>
                                 <div className={styles.contactItem}>
-                                    <Phone size={20} /> <span>+91 98765 43210</span>
+                                    <Phone size={20} /> <span>+91 8072034620</span>
                                 </div>
                                 <div className={styles.contactItem}>
                                     <Mail size={20} /> <span>ponniammantransport2023@gmail.com</span>
