@@ -88,7 +88,7 @@ const Home = () => {
                 <ScrollReveal variant="scale">
                     <div className={styles.container}>
                         <div className={styles.ctaContent}>
-                            <h2>Ready to move your goods?</h2>
+                            <h2>Ready to move your goods </h2>
                             <p>Contact us today for a quote or to schedule a pickup.</p>
                             <div className={styles.contactInfo}>
                                 <div className={styles.contactItem}>
