@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Upload, Plus, FileText, CheckCircle, AlertCircle, DollarSign, Trash2, Search, Bell, Edit2, X, Save, UserPlus } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
-import { createDispatchRecord, uploadFinancialData, getFilteredRecords, getDashboardStats, getAnnualSummary, deleteDispatchRecords, updateDispatchRecord } from '../utils/api';
+import { createDispatchRecord, uploadFinancialData, getFilteredRecords, getDashboardStats, getAnnualSummary, deleteDispatchRecords, deleteAllDispatchRecords, updateDispatchRecord } from '../utils/api';
 import { formatDate } from '../utils/dateFormatter';
 import styles from './Admin.module.css';
 
@@ -104,7 +104,7 @@ const Admin = () => {
             setEditingRecordId(null);
             fetchData();
         } catch (error) {
-            alert("Failed to update record.");
+            alert(error.message || "Failed to update record.");
         }
         setLoading(false);
     };
@@ -131,7 +131,7 @@ const Admin = () => {
             setIsModalOpen(false);
             fetchData();
         } catch (error) {
-            setUploadStatus({ type: 'error', message: 'Failed to create record.' });
+            setUploadStatus({ type: 'error', message: error.message || 'Failed to create record.' });
         }
         setLoading(false);
         setTimeout(() => setUploadStatus(null), 3000);
@@ -185,6 +185,16 @@ const Admin = () => {
         }
     };
 
+    const handleDeleteAllRecords = async () => {
+        if (!window.confirm(`WARNING: Are you sure you want to permanently delete ALL dispatch records?`)) return;
+        try {
+            await deleteAllDispatchRecords();
+            fetchData();
+        } catch (error) {
+            alert("Failed to delete all records");
+        }
+    };
+
     return (
         <div className={styles.adminPage}>
             {/* Top Navigation */}
@@ -213,6 +223,11 @@ const Admin = () => {
                         {selectedRecordIds.length > 0 && (
                             <Button variant="danger" size="sm" onClick={handleBulkDelete} className={styles.deleteBtn}>
                                 <Trash2 size={16} /> Delete Selected
+                            </Button>
+                        )}
+                        {records.length > 0 && (
+                            <Button variant="danger" size="sm" onClick={handleDeleteAllRecords} className={styles.deleteBtn}>
+                                <Trash2 size={16} /> Delete All Records
                             </Button>
                         )}
                     </div>
@@ -246,7 +261,11 @@ const Admin = () => {
                         </thead>
                         <tbody>
                             {records.length > 0 ? (
-                                records.map((record) => {
+                                [...records].sort((a, b) => {
+                                    if (!a.invoiceNo) return 1;
+                                    if (!b.invoiceNo) return -1;
+                                    return String(a.invoiceNo).localeCompare(String(b.invoiceNo), undefined, { numeric: true, sensitivity: 'base' });
+                                }).map((record) => {
                                     const isEditing = editingRecordId === record.id;
                                     const isSelected = selectedRecordIds.includes(record.id);
 

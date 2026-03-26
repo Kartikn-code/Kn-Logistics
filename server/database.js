@@ -241,6 +241,38 @@ const createTables = async () => {
             )
         `);
 
+        await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS basic_payments (
+                id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+                paymentDate DATE,
+                paymentAmount DECIMAL(15, 2)
+            )
+        `);
+
+        await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS invoice_payments (
+                id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+                invoiceNo VARCHAR(100),
+                myRate DECIMAL(15, 2),
+                nipponRate DECIMAL(15, 2),
+                tds DECIMAL(15, 2),
+                totalReceived DECIMAL(15, 2),
+                deduction DECIMAL(15, 2),
+                receivedStatus VARCHAR(100),
+                paymentDate DATE
+            )
+        `);
+
+        await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS unsaved_records (
+                id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+                fileName VARCHAR(255),
+                recordIdentifier VARCHAR(255),
+                issueDetails TEXT,
+                uploadDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         // Create indexes for better query performance
         await dbWrapper.run(`CREATE INDEX IF NOT EXISTS idx_dispatch_date ON dispatch_records(dispatchDate)`);
         await dbWrapper.run(`CREATE INDEX IF NOT EXISTS idx_truck_no ON dispatch_records(truckNo)`);

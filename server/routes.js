@@ -350,6 +350,29 @@ router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) 
                 dateOfArrival = parseExcelDate(dateOfArrival) || null;
                 deliveryDate = parseExcelDate(deliveryDate) || null;
 
+                // Check for duplicate LR number
+                if (lrNo) {
+                    try {
+                        const existing = await new Promise((resolve) => {
+                            db.get('SELECT id FROM dispatch_records WHERE lrNo = ?', [lrNo], (err, row) => {
+                                resolve(row);
+                            });
+                        });
+                        if (existing) {
+                            skipped++;
+                            await new Promise((resolve) => {
+                                db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
+                                    [req.file ? req.file.originalname : 'Upload', lrNo, 'Duplicate LR number found'],
+                                    () => resolve()
+                                );
+                            });
+                            continue; // Skip this row as LR No. already exists
+                        }
+                    } catch (e) {
+                         // silently ignore select error and proceed
+                    }
+                }
+
                 if (dispatchDate && truckNo) {
                     try {
                         await new Promise((resolve, reject) => {
@@ -394,18 +417,32 @@ router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) 
 // GET Annual Summary
 router.get('/analytics/annual-summary', verifyToken, (req, res) => {
     const isPg = !!process.env.DATABASE_URL;
-    const yearExt = isPg ? "TO_CHAR(dispatchDate, 'YYYY')" : "strftime('%Y', dispatchDate)";
+    const yearExt = isPg ? "TO_CHAR(d.dispatchDate, 'YYYY')" : "strftime('%Y', d.dispatchDate)";
+    const { paymentStatus } = req.query;
+
+    let joinClause = '';
+    let statusFilter = '';
+
+    if (paymentStatus === 'Received') {
+        joinClause = 'LEFT JOIN invoice_payments ip ON d.invoiceNo = ip.invoiceNo';
+        statusFilter = " AND ip.receivedStatus IS NOT NULL AND LOWER(TRIM(ip.receivedStatus)) IN ('received', 'paid', 'done', 'yes')";
+    } else if (paymentStatus === 'Pending') {
+        joinClause = 'LEFT JOIN invoice_payments ip ON d.invoiceNo = ip.invoiceNo';
+        statusFilter = " AND (ip.receivedStatus IS NULL OR LOWER(TRIM(ip.receivedStatus)) NOT IN ('received', 'paid', 'done', 'yes'))";
+    }
 
     const sql = `
         SELECT
             ${yearExt} as year,
-            SUM(freight + loading + unloading + halt) as totalEarnings,
-            SUM(fuelCost + driverFee) as totalExpenses,
-            SUM(freight + loading + unloading + halt) - SUM(fuelCost + driverFee) as netProfit,
-            SUM(total) as grandTotal,
-            SUM(tons) as totalTons,
+            SUM(d.freight + d.loading + d.unloading + d.halt) as totalEarnings,
+            SUM(d.fuelCost + d.driverFee) as totalExpenses,
+            SUM(d.freight + d.loading + d.unloading + d.halt) - SUM(d.fuelCost + d.driverFee) as netProfit,
+            SUM(d.total) as grandTotal,
+            SUM(d.tons) as totalTons,
             COUNT(*) as totalTrips
-        FROM dispatch_records
+        FROM dispatch_records d
+        ${joinClause}
+        WHERE 1=1 ${statusFilter}
         GROUP BY ${yearExt}
         ORDER BY year DESC
     `;
@@ -421,20 +458,34 @@ router.get('/analytics/annual-summary', verifyToken, (req, res) => {
 // GET Truck-based Earnings
 router.get('/analytics/truck-earnings', verifyToken, (req, res) => {
     const isPg = !!process.env.DATABASE_URL;
-    const yearExt = isPg ? "TO_CHAR(dispatchDate, 'YYYY')" : "strftime('%Y', dispatchDate)";
+    const yearExt = isPg ? "TO_CHAR(d.dispatchDate, 'YYYY')" : "strftime('%Y', d.dispatchDate)";
     const year = req.query.year || new Date().getFullYear().toString();
+    const { paymentStatus } = req.query;
+
+    let joinClause = '';
+    let statusFilter = '';
+
+    if (paymentStatus === 'Received') {
+        joinClause = 'LEFT JOIN invoice_payments ip ON d.invoiceNo = ip.invoiceNo';
+        statusFilter = " AND ip.receivedStatus IS NOT NULL AND LOWER(TRIM(ip.receivedStatus)) IN ('received', 'paid', 'done', 'yes')";
+    } else if (paymentStatus === 'Pending') {
+        joinClause = 'LEFT JOIN invoice_payments ip ON d.invoiceNo = ip.invoiceNo';
+        statusFilter = " AND (ip.receivedStatus IS NULL OR LOWER(TRIM(ip.receivedStatus)) NOT IN ('received', 'paid', 'done', 'yes'))";
+    }
+
     const sql = `
         SELECT
-            truckNo as truckNumber,
-            SUM(freight + loading + unloading + halt) as earnings,
-            SUM(fuelCost + driverFee) as expenses,
-            SUM(freight + loading + unloading + halt) - SUM(fuelCost + driverFee) as profit,
-            SUM(total) as grandTotal,
-            SUM(tons) as totalTons,
+            d.truckNo as truckNumber,
+            SUM(d.freight + d.loading + d.unloading + d.halt) as earnings,
+            SUM(d.fuelCost + d.driverFee) as expenses,
+            SUM(d.freight + d.loading + d.unloading + d.halt) - SUM(d.fuelCost + d.driverFee) as profit,
+            SUM(d.total) as grandTotal,
+            SUM(d.tons) as totalTons,
             COUNT(*) as trips
-        FROM dispatch_records
-        WHERE ${yearExt} = ?
-        GROUP BY truckNo
+        FROM dispatch_records d
+        ${joinClause}
+        WHERE ${yearExt} = ? ${statusFilter}
+        GROUP BY d.truckNo
         ORDER BY earnings DESC
     `;
 
@@ -449,19 +500,33 @@ router.get('/analytics/truck-earnings', verifyToken, (req, res) => {
 // GET Monthly Earnings
 router.get('/analytics/monthly-earnings', verifyToken, (req, res) => {
     const isPg = !!process.env.DATABASE_URL;
-    const yearExt = isPg ? "TO_CHAR(dispatchDate, 'YYYY')" : "strftime('%Y', dispatchDate)";
-    const monthExt = isPg ? "TO_CHAR(dispatchDate, 'MM')" : "strftime('%m', dispatchDate)";
+    const yearExt = isPg ? "TO_CHAR(d.dispatchDate, 'YYYY')" : "strftime('%Y', d.dispatchDate)";
+    const monthExt = isPg ? "TO_CHAR(d.dispatchDate, 'MM')" : "strftime('%m', d.dispatchDate)";
     const year = req.query.year || new Date().getFullYear().toString();
+    const { paymentStatus } = req.query;
+
+    let joinClause = '';
+    let statusFilter = '';
+
+    if (paymentStatus === 'Received') {
+        joinClause = 'LEFT JOIN invoice_payments ip ON d.invoiceNo = ip.invoiceNo';
+        statusFilter = " AND ip.receivedStatus IS NOT NULL AND LOWER(TRIM(ip.receivedStatus)) IN ('received', 'paid', 'done', 'yes')";
+    } else if (paymentStatus === 'Pending') {
+        joinClause = 'LEFT JOIN invoice_payments ip ON d.invoiceNo = ip.invoiceNo';
+        statusFilter = " AND (ip.receivedStatus IS NULL OR LOWER(TRIM(ip.receivedStatus)) NOT IN ('received', 'paid', 'done', 'yes'))";
+    }
+
     const sql = `
         SELECT
             ${monthExt} as month,
             ${yearExt} as year,
-            SUM(freight + loading + unloading + halt) as earnings,
-            SUM(fuelCost + driverFee) as expenses,
-            SUM(total) as grandTotal,
+            SUM(d.freight + d.loading + d.unloading + d.halt) as earnings,
+            SUM(d.fuelCost + d.driverFee) as expenses,
+            SUM(d.total) as grandTotal,
             COUNT(*) as trips
-        FROM dispatch_records
-        WHERE ${yearExt} = ?
+        FROM dispatch_records d
+        ${joinClause}
+        WHERE ${yearExt} = ? ${statusFilter}
         GROUP BY ${yearExt}, ${monthExt}
         ORDER BY month ASC
     `;
@@ -492,7 +557,7 @@ router.get('/analytics/monthly-earnings', verifyToken, (req, res) => {
 
 // GET all dispatch records
 router.get('/dispatch-records', verifyToken, (req, res) => {
-    const sql = 'SELECT * FROM dispatch_records ORDER BY dispatchDate DESC, id DESC';
+    const sql = 'SELECT * FROM dispatch_records ORDER BY invoiceNo ASC, dispatchDate DESC, id DESC';
     db.all(sql, [], (err, rows) => {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -502,39 +567,51 @@ router.get('/dispatch-records', verifyToken, (req, res) => {
 });
 // GET Filtered Dispatch Records
 router.get('/analytics/filtered-records', verifyToken, (req, res) => {
-    const { truckNo, invoiceNo, dispatchDate, deliveryDate, loading, unloading, freight, year } = req.query;
+    const { truckNo, invoiceNo, dispatchDate, deliveryDate, loading, unloading, freight, year, paymentStatus } = req.query;
 
-    let sql = `SELECT * FROM dispatch_records WHERE 1=1`;
+    let joinClause = '';
+    let sql = `SELECT d.* FROM dispatch_records d `;
+
+    if (paymentStatus === 'Received') {
+        joinClause = 'LEFT JOIN invoice_payments ip ON d.invoiceNo = ip.invoiceNo ';
+        sql += joinClause + "WHERE (ip.receivedStatus IS NOT NULL AND LOWER(TRIM(ip.receivedStatus)) IN ('received', 'paid', 'done', 'yes'))";
+    } else if (paymentStatus === 'Pending') {
+        joinClause = 'LEFT JOIN invoice_payments ip ON d.invoiceNo = ip.invoiceNo ';
+        sql += joinClause + "WHERE (ip.receivedStatus IS NULL OR LOWER(TRIM(ip.receivedStatus)) NOT IN ('received', 'paid', 'done', 'yes'))";
+    } else {
+        sql += "WHERE 1=1";
+    }
+
     const params = [];
 
     if (truckNo) {
-        sql += " AND truckNo LIKE ?";
+        sql += " AND d.truckNo LIKE ?";
         params.push(`%${truckNo}%`);
     }
 
     if (year) {
         const isPg = !!process.env.DATABASE_URL;
         if (isPg) {
-            sql += " AND TO_CHAR(dispatchDate, 'YYYY') = ?";
+            sql += " AND TO_CHAR(d.dispatchDate, 'YYYY') = ?";
             params.push(year);
         } else {
-            sql += " AND dispatchDate LIKE ?";
+            sql += " AND d.dispatchDate LIKE ?";
             params.push(`${year}%`);
         }
     }
 
     if (invoiceNo) {
-        sql += " AND invoiceNo LIKE ?";
+        sql += " AND d.invoiceNo LIKE ?";
         params.push(`%${invoiceNo}%`);
     }
 
     if (dispatchDate) {
         const isPg = !!process.env.DATABASE_URL;
         if (isPg) {
-            sql += " AND TO_CHAR(dispatchDate, 'YYYY-MM-DD') = ?";
+            sql += " AND TO_CHAR(d.dispatchDate, 'YYYY-MM-DD') = ?";
             params.push(dispatchDate);
         } else {
-            sql += " AND dispatchDate LIKE ?";
+            sql += " AND d.dispatchDate LIKE ?";
             params.push(`${dispatchDate}%`);
         }
     }
@@ -542,30 +619,30 @@ router.get('/analytics/filtered-records', verifyToken, (req, res) => {
     if (deliveryDate) {
         const isPg = !!process.env.DATABASE_URL;
         if (isPg) {
-            sql += " AND TO_CHAR(deliveryDate, 'YYYY-MM-DD') = ?";
+            sql += " AND TO_CHAR(d.deliveryDate, 'YYYY-MM-DD') = ?";
             params.push(deliveryDate);
         } else {
-            sql += " AND deliveryDate LIKE ?";
+            sql += " AND d.deliveryDate LIKE ?";
             params.push(`${deliveryDate}%`);
         }
     }
 
     if (loading) {
-        sql += " AND loading = ?";
+        sql += " AND d.loading = ?";
         params.push(parseFloat(loading));
     }
 
     if (unloading) {
-        sql += " AND unloading = ?";
+        sql += " AND d.unloading = ?";
         params.push(parseFloat(unloading));
     }
 
     if (freight) {
-        sql += " AND freight = ?";
+        sql += " AND d.freight = ?";
         params.push(parseFloat(freight));
     }
 
-    sql += " ORDER BY dispatchDate DESC, id DESC";
+    sql += " ORDER BY d.invoiceNo ASC, d.dispatchDate DESC, d.id DESC";
 
     db.all(sql, params, (err, rows) => {
         if (err) {
@@ -580,6 +657,22 @@ router.get('/analytics/filtered-records', verifyToken, (req, res) => {
 router.put('/analytics/record/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination, dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee } = req.body;
+
+    if (lrNo) {
+        try {
+            const existing = await new Promise((resolve, reject) => {
+                db.get('SELECT id FROM dispatch_records WHERE lrNo = ? AND id != ?', [lrNo, id], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+            if (existing) {
+                return res.status(400).json({ error: 'This LR number already exists.' });
+            }
+        } catch (err) {
+            return res.status(500).json({ error: 'Database error checking LR number' });
+        }
+    }
 
     const total = Number(freight || 0) + Number(multiPoint || 0) + Number(loading || 0) + Number(unloading || 0) + Number(halt || 0);
 
@@ -648,6 +741,23 @@ router.delete('/analytics/filtered-records', verifyToken, async (req, res) => {
     }
 });
 
+// DELETE All Dispatch Records
+router.delete('/analytics/records/all', verifyToken, async (req, res) => {
+    try {
+        await new Promise((resolve, reject) => {
+            db.run('DELETE FROM dispatch_records', function (err) {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        res.json({ message: 'All dispatch records successfully cleared.' });
+    } catch (err) {
+        console.error('Error deleting all records:', err.message);
+        res.status(500).json({ error: 'Failed to delete all records.' });
+    }
+});
+
 // Reset Entire Database (Orders and Dispatch Records)
 router.delete('/reset-database', verifyToken, async (req, res) => {
     try {
@@ -676,6 +786,22 @@ router.delete('/reset-database', verifyToken, async (req, res) => {
 router.post('/analytics/record', verifyToken, async (req, res) => {
     const { dispatchDate, invoiceNo, lrNo, poNumber, truckNo, sourceLocation, finalDestination, dateOfArrival, deliveryDate, tons, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee } = req.body;
 
+    if (lrNo) {
+        try {
+            const existing = await new Promise((resolve, reject) => {
+                db.get('SELECT id FROM dispatch_records WHERE lrNo = ?', [lrNo], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+            if (existing) {
+                return res.status(400).json({ error: 'This LR number already exists.' });
+            }
+        } catch (err) {
+            return res.status(500).json({ error: 'Database error checking LR number' });
+        }
+    }
+
     const total = Number(freight || 0) + Number(multiPoint || 0) + Number(loading || 0) + Number(unloading || 0) + Number(halt || 0);
 
     const sql = `
@@ -694,6 +820,300 @@ router.post('/analytics/record', verifyToken, async (req, res) => {
             return res.status(500).json({ error: `Failed to create record: ${err.message}` });
         }
         res.json({ message: 'Record created successfully', id: this.lastID, total });
+    });
+});
+
+// ===== PAYMENTS ROUTES =====
+
+// GET Basic Payments Stats
+router.get('/payments/basic-stats', verifyToken, async (req, res) => {
+    try {
+        const expectedResult = await new Promise((resolve) => db.get('SELECT SUM(total) as expected FROM dispatch_records', [], (err, row) => resolve(row)));
+        const receivedResult = await new Promise((resolve) => db.get('SELECT SUM(paymentAmount) as received FROM basic_payments', [], (err, row) => resolve(row)));
+
+        const expected = expectedResult?.expected || 0;
+        const received = receivedResult?.received || 0;
+        const pending = expected - received;
+
+        res.json({ expected, received, pending });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch basic stats' });
+    }
+});
+
+// UPLOAD Basic Payments Excel
+router.post('/payments/upload-basic', verifyToken, upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    try {
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        if (rows.length === 0) return res.json({ message: 'No data found in file', success: 0, failed: 0 });
+
+        const sql = `INSERT INTO basic_payments (paymentDate, paymentAmount) VALUES (?, ?)`;
+        let completed = 0, errors = 0, skipped = 0;
+
+        const processRows = async () => {
+             for (const row of rows) {
+                const normRow = {};
+                for (let key in row) normRow[key.trim().toUpperCase()] = row[key];
+
+                let payDate = normRow['PAYMENT RECEIVED DATE'] || normRow['DATE'] || null;
+                const payAmount = parseFloat(normRow['PAYMENT RECEIVED AMOUNT'] || normRow['AMOUNT']) || 0;
+
+                // Handle Excel dates
+                if (typeof payDate === 'number') {
+                    const jsDate = new Date((payDate - 25569) * 86400 * 1000); // Excel epoch conversion
+                    payDate = jsDate.toISOString().split('T')[0];
+                }
+
+                if (payAmount > 0) {
+                    try {
+                        const existing = await new Promise((resolve) => {
+                            db.get('SELECT id FROM basic_payments WHERE paymentDate = ? AND paymentAmount = ?', [payDate, payAmount], (err, row) => resolve(row));
+                        });
+                        
+                        if (existing) {
+                            skipped++;
+                            await new Promise((resolve) => {
+                                db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
+                                    [req.file ? req.file.originalname : 'Upload', `Date: ${payDate}, Amount: ${payAmount}`, 'Duplicate Basic Payment found'],
+                                    () => resolve()
+                                );
+                            });
+                            continue;
+                        }
+
+                        await new Promise((resolve, reject) => {
+                            db.run(sql, [payDate, payAmount], (err) => {
+                                if (err) { errors++; reject(err); }
+                                else { completed++; resolve(); }
+                            });
+                        });
+                    } catch (e) {}
+                }
+             }
+             if (!res.headersSent) res.json({ message: `Processed ${rows.length} rows`, success: completed, failed: errors });
+        };
+        processRows().catch(() => { if (!res.headersSent) res.status(500).json({ error: 'Processing error' }); });
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to parse Excel file' });
+    }
+});
+
+// GET Invoice Payments Stats
+router.get('/payments/invoice-stats', verifyToken, async (req, res) => {
+    try {
+        const result = await new Promise((resolve) => db.get(`
+            SELECT 
+                SUM(myRate) as totalBillValue,
+                SUM(CASE WHEN LOWER(TRIM(IFNULL(receivedStatus, ''))) IN ('received', 'paid', 'done', 'yes') THEN myRate ELSE 0 END) as myRateReceived,
+                SUM(CASE WHEN LOWER(TRIM(IFNULL(receivedStatus, ''))) IN ('received', 'paid', 'done', 'yes') THEN deduction ELSE 0 END) as deductionReceived,
+                SUM(CASE WHEN LOWER(TRIM(IFNULL(receivedStatus, ''))) NOT IN ('received', 'paid', 'done', 'yes') THEN myRate ELSE 0 END) as yetToReceive,
+                SUM(nipponRate) as nipponRateSum,
+                SUM(tds) as tds,
+                SUM(totalReceived) as totalReceived 
+            FROM invoice_payments`, [],
+        (err, row) => resolve(row)));
+
+        const receivedStatusCounts = await new Promise((resolve) => db.all(`
+            SELECT receivedStatus, COUNT(*) as count 
+            FROM invoice_payments 
+            GROUP BY receivedStatus COLLATE NOCASE`, [], 
+        (err, rows) => resolve(rows || [])));
+        
+        let receivedCount = 0;
+        let notReceivedCount = 0;
+        
+        receivedStatusCounts.forEach(row => {
+            const status = (row.receivedStatus || '').toString().toLowerCase().trim();
+            if (status === 'received' || status === 'paid' || status === 'done' || status === 'yes') {
+                receivedCount += row.count;
+            } else {
+                notReceivedCount += row.count; // "not received", "pending", blank, etc.
+            }
+        });
+
+        const totalBillValue = result?.totalBillValue || 0;
+        const totalAmountReceived = result?.myRateReceived || 0;
+        const totalAmountDeducted = result?.deductionReceived || 0;
+        const yetToReceive = result?.yetToReceive || 0;
+        const tds = result?.tds || 0;
+        const totalReceived = result?.totalReceived || 0;
+        // Balance = total expected myRate - totalReceived? Or balance = yetToReceive?
+        // Original logic: totalBalance = myRate - totalReceived
+        // Updated to sum of Invoice Pending (Yet to Receive) and TDS pending
+        const totalBalance = yetToReceive + tds;
+
+        res.json({ totalBillValue, totalAmountReceived, totalAmountDeducted, yetToReceive, tds, totalReceived, totalBalance, receivedCount, notReceivedCount });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch invoice stats' });
+    }
+});
+
+// UPLOAD Invoice Payments Excel
+router.post('/payments/upload-invoice', verifyToken, upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    try {
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        if (rows.length === 0) return res.json({ message: 'No data found in file', success: 0, failed: 0 });
+
+        const sql = `INSERT INTO invoice_payments (invoiceNo, myRate, nipponRate, tds, totalReceived, deduction, receivedStatus, paymentDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        let completed = 0, errors = 0, skipped = 0;
+
+        const processRows = async () => {
+             for (const row of rows) {
+                const normRow = {};
+                for (let key in row) normRow[key.trim().toUpperCase()] = row[key];
+
+                const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICENO'] || '';
+                const myRate = parseFloat(normRow['MY RATE']) || 0;
+                const nipponRate = parseFloat(normRow['NIPPON RATE']) || 0;
+                const tds = parseFloat(normRow['TDS']) || 0;
+                const totalReceived = parseFloat(normRow['TOTAL RECEIVED']) || 0;
+                const deduction = parseFloat(normRow['DEDUCTION']) || 0;
+                const receivedStatus = normRow['RECEIVED STATUS'] || normRow['STATUS'] || '';
+                let payDate = normRow['DATE'] || null;
+
+                if (typeof payDate === 'number') {
+                    const jsDate = new Date((payDate - 25569) * 86400 * 1000);
+                    payDate = jsDate.toISOString().split('T')[0];
+                }
+
+                if (invoiceNo) {
+                    try {
+                        const existing = await new Promise((resolve) => {
+                            db.get('SELECT id FROM invoice_payments WHERE invoiceNo = ?', [invoiceNo], (err, row) => resolve(row));
+                        });
+
+                        if (existing) {
+                            skipped++;
+                            await new Promise((resolve) => {
+                                db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
+                                    [req.file ? req.file.originalname : 'Upload', invoiceNo, 'Duplicate Invoice number found'],
+                                    () => resolve()
+                                );
+                            });
+                            continue;
+                        }
+
+                        await new Promise((resolve, reject) => {
+                            db.run(sql, [invoiceNo, myRate, nipponRate, tds, totalReceived, deduction, receivedStatus, payDate], (err) => {
+                                if (err) { errors++; reject(err); }
+                                else { completed++; resolve(); }
+                            });
+                        });
+                    } catch (e) {}
+                }
+             }
+             if (!res.headersSent) {
+                 const dupMsg = skipped > 0 ? ` (${skipped} duplicates logged to unsaved records)` : '';
+                 res.json({ message: `Saved ${completed} rows${dupMsg}.`, success: completed, failed: errors, skipped: skipped });
+             }
+        };
+        processRows().catch(() => { if (!res.headersSent) res.status(500).json({ error: 'Processing error' }); });
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to parse Excel file' });
+    }
+});
+
+// GET All Invoice Payments
+router.get('/payments/invoices', verifyToken, (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+    const search = req.query.search ? `%${req.query.search}%` : null;
+
+    let baseSql = `FROM invoice_payments`;
+    let countSql = `SELECT COUNT(*) as total ${baseSql}`;
+    let dataSql = `SELECT * ${baseSql}`;
+    let params = [];
+
+    if (search) {
+        let condition = ` WHERE invoiceNo LIKE ? OR receivedStatus LIKE ?`;
+        countSql += condition;
+        dataSql += condition;
+        params = [search, search];
+    }
+
+    dataSql += ` ORDER BY invoiceNo ASC, paymentDate DESC, id DESC LIMIT ? OFFSET ?`;
+
+    db.get(countSql, params, (err, countRow) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        db.all(dataSql, [...params, limit, offset], (err, rows) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            res.json({
+                data: rows,
+                pagination: {
+                    total: countRow.total,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(countRow.total / limit)
+                }
+            });
+        });
+    });
+});
+
+// PUT Update Invoice Payment
+router.put('/payments/invoices/:id', verifyToken, (req, res) => {
+    const { id } = req.params;
+    const { invoiceNo, myRate, nipponRate, tds, totalReceived, deduction, receivedStatus, paymentDate } = req.body;
+
+    const sql = `
+        UPDATE invoice_payments 
+        SET invoiceNo = ?, myRate = ?, nipponRate = ?, tds = ?, totalReceived = ?, deduction = ?, receivedStatus = ?, paymentDate = ?
+        WHERE id = ?
+    `;
+
+    db.run(sql, [invoiceNo, myRate, nipponRate, tds, totalReceived, deduction, receivedStatus, paymentDate, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ error: 'Invoice not found' });
+        res.json({ message: 'Invoice updated successfully' });
+    });
+});
+
+// DELETE Invoice Payments (Bulk or Single)
+router.delete('/payments/invoices', verifyToken, (req, res) => {
+    const { ids } = req.body;
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'No IDs provided for deletion' });
+    }
+
+    const placeholders = ids.map(() => '?').join(',');
+    const sql = `DELETE FROM invoice_payments WHERE id IN (${placeholders})`;
+
+    db.run(sql, ids, function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: `Successfully deleted ${this.changes} invoice(s)` });
+    });
+});
+
+// DELETE All Invoice Payments
+router.delete('/payments/invoices/all', verifyToken, (req, res) => {
+    db.run(`DELETE FROM invoice_payments`, [], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: `Successfully deleted all invoice records` });
+    });
+});
+
+// GET Unsaved Records
+router.get('/analytics/unsaved-records', verifyToken, (req, res) => {
+    const sql = `SELECT * FROM unsaved_records ORDER BY uploadDate DESC LIMIT 100`;
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ data: rows });
     });
 });
 

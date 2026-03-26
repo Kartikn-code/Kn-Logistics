@@ -21,7 +21,11 @@ app.get('/', (req, res) => {
     res.json({ message: 'KN Logistics Backend is running' });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+// Start server locally (Vercel uses the exported app instead)
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+    });
+}
+
+export default app;

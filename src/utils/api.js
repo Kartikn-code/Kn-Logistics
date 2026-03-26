@@ -119,9 +119,10 @@ export const uploadFinancialData = async (file) => {
 };
 
 // Fetch annual summary
-export const getAnnualSummary = async () => {
+export const getAnnualSummary = async (paymentStatus = '') => {
     try {
-        const response = await fetchWithAuth(`${API_URL}/analytics/annual-summary`);
+        const url = paymentStatus ? `${API_URL}/analytics/annual-summary?paymentStatus=${paymentStatus}` : `${API_URL}/analytics/annual-summary`;
+        const response = await fetchWithAuth(url);
         if (!response.ok) throw new Error('Failed to fetch annual summary');
         const data = await response.json();
         return data.data;
@@ -132,9 +133,12 @@ export const getAnnualSummary = async () => {
 };
 
 // Fetch truck-based earnings
-export const getTruckEarnings = async (year) => {
+export const getTruckEarnings = async (year, paymentStatus = '') => {
     try {
-        const url = year ? `${API_URL}/analytics/truck-earnings?year=${year}` : `${API_URL}/analytics/truck-earnings`;
+        let url = year ? `${API_URL}/analytics/truck-earnings?year=${year}` : `${API_URL}/analytics/truck-earnings`;
+        if (paymentStatus) {
+            url += url.includes('?') ? `&paymentStatus=${paymentStatus}` : `?paymentStatus=${paymentStatus}`;
+        }
         const response = await fetchWithAuth(url);
         if (!response.ok) throw new Error('Failed to fetch truck earnings');
         const data = await response.json();
@@ -146,9 +150,12 @@ export const getTruckEarnings = async (year) => {
 };
 
 // Fetch monthly earnings
-export const getMonthlyEarnings = async (year) => {
+export const getMonthlyEarnings = async (year, paymentStatus = '') => {
     try {
-        const url = year ? `${API_URL}/analytics/monthly-earnings?year=${year}` : `${API_URL}/analytics/monthly-earnings`;
+        let url = year ? `${API_URL}/analytics/monthly-earnings?year=${year}` : `${API_URL}/analytics/monthly-earnings`;
+        if (paymentStatus) {
+            url += url.includes('?') ? `&paymentStatus=${paymentStatus}` : `?paymentStatus=${paymentStatus}`;
+        }
         const response = await fetchWithAuth(url);
         if (!response.ok) throw new Error('Failed to fetch monthly earnings');
         const data = await response.json();
@@ -171,6 +178,7 @@ export const getFilteredRecords = async (params) => {
         if (params.unloading) queryParams.append('unloading', params.unloading);
         if (params.freight) queryParams.append('freight', params.freight);
         if (params.year) queryParams.append('year', params.year);
+        if (params.paymentStatus && params.paymentStatus !== 'All') queryParams.append('paymentStatus', params.paymentStatus);
 
         const response = await fetchWithAuth(`${API_URL}/analytics/filtered-records?${queryParams.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch filtered records');
@@ -189,7 +197,9 @@ export const createDispatchRecord = async (data) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         });
-        return await response.json();
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to create record');
+        return result;
     } catch (error) {
         console.error('Error creating record:', error);
         throw error;
@@ -203,7 +213,9 @@ export const updateDispatchRecord = async (id, data) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         });
-        return await response.json();
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to update record');
+        return result;
     } catch (error) {
         console.error('Error updating record:', error);
         throw error;
@@ -220,6 +232,19 @@ export const deleteDispatchRecords = async (ids) => {
         return await response.json();
     } catch (error) {
         console.error('Error bulk deleting records:', error);
+        throw error;
+    }
+};
+
+export const deleteAllDispatchRecords = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/analytics/records/all`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete all records');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting all records:', error);
         throw error;
     }
 };
@@ -260,6 +285,114 @@ export const deleteOrders = async (ids) => {
         return await response.json();
     } catch (error) {
         console.error('Error bulk deleting orders:', error);
+        throw error;
+    }
+};
+
+// --- PAYMENTS API ---
+
+export const getBasicStats = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/basic-stats`);
+        if (!response.ok) throw new Error('Failed to fetch basic stats');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching basic stats:', error);
+        return { expected: 0, received: 0, pending: 0 };
+    }
+};
+
+export const uploadBasicPayments = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/upload-basic`, {
+            method: 'POST',
+            body: formData,
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error uploading basic payments:', error);
+        throw error;
+    }
+};
+
+export const getInvoiceStats = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/invoice-stats`);
+        if (!response.ok) throw new Error('Failed to fetch invoice stats');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching invoice stats:', error);
+        return { totalBillValue: 0, totalAmountReceived: 0, totalAmountDeducted: 0, yetToReceive: 0, tds: 0, totalReceived: 0, totalBalance: 0, receivedCount: 0, notReceivedCount: 0 };
+    }
+};
+
+export const uploadInvoicePayments = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/upload-invoice`, {
+            method: 'POST',
+            body: formData,
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error uploading invoice payments:', error);
+        throw error;
+    }
+};
+
+export const getInvoices = async (page = 1, limit = 10, search = '') => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/invoices?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
+        if (!response.ok) throw new Error('Failed to fetch invoices');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching invoices:', error);
+        throw error;
+    }
+};
+
+export const updateInvoice = async (id, data) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/invoices/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to update invoice');
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating invoice:', error);
+        throw error;
+    }
+};
+
+export const deleteInvoices = async (ids) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/invoices`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids }),
+        });
+        if (!response.ok) throw new Error('Failed to delete invoices');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting invoices:', error);
+        throw error;
+    }
+};
+
+export const deleteAllInvoices = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/invoices/all`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete all invoices');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting all invoices:', error);
         throw error;
     }
 };

@@ -11,6 +11,7 @@ import Signup from './pages/Signup';
 import PageWrapper from './components/UI/PageWrapper';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
+import Payments from './pages/Payments';
 
 function App() {
   const location = useLocation();
@@ -39,6 +40,11 @@ function App() {
             <Route path="signup" element={
               <ProtectedRoute>
                 <PageWrapper><Signup /></PageWrapper>
+              </ProtectedRoute>
+            } />
+            <Route path="payments" element={
+              <ProtectedRoute>
+                <PageWrapper><Payments /></PageWrapper>
               </ProtectedRoute>
             } />
           </Route>

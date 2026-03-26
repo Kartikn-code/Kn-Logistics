@@ -27,8 +27,9 @@ const Dashboard = () => {
         truckNo: '',
         invoiceNo: '',
         dispatchDate: '',
-
+        paymentStatus: 'All'
     });
+    const [appliedFilters, setAppliedFilters] = useState({ paymentStatus: 'All' });
 
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
     const [loaded, setLoaded] = useState(false);
@@ -36,9 +37,9 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchAll = async () => {
             const [annual, trucks, monthly] = await Promise.all([
-                getAnnualSummary(),
-                getTruckEarnings(selectedYear),
-                getMonthlyEarnings(selectedYear)
+                getAnnualSummary(appliedFilters.paymentStatus === 'All' ? '' : appliedFilters.paymentStatus),
+                getTruckEarnings(selectedYear, appliedFilters.paymentStatus === 'All' ? '' : appliedFilters.paymentStatus),
+                getMonthlyEarnings(selectedYear, appliedFilters.paymentStatus === 'All' ? '' : appliedFilters.paymentStatus)
             ]);
             setAnnualData(annual);
             setTruckData(trucks);
@@ -60,7 +61,7 @@ const Dashboard = () => {
         handleFilterSubmit(); // Initial fetch for filters
         const interval = setInterval(fetchAll, 30000); // 30s refresh
         return () => clearInterval(interval);
-    }, [selectedYear]);
+    }, [selectedYear, appliedFilters.paymentStatus]);
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
@@ -70,6 +71,7 @@ const Dashboard = () => {
     const handleFilterSubmit = async (e) => {
         if (e) e.preventDefault();
         setIsFiltering(true);
+        setAppliedFilters({ paymentStatus: filters.paymentStatus });
         const data = await getFilteredRecords({ ...filters, year: selectedYear });
         setFilteredRecords(data);
         setIsFiltering(false);
@@ -80,8 +82,10 @@ const Dashboard = () => {
             truckNo: '',
             invoiceNo: '',
             dispatchDate: '',
+            paymentStatus: 'All'
         };
         setFilters(clearedFilters);
+        setAppliedFilters({ paymentStatus: 'All' });
         setIsFiltering(true);
         const data = await getFilteredRecords({ ...clearedFilters, year: selectedYear });
         setFilteredRecords(data);
@@ -218,6 +222,14 @@ const Dashboard = () => {
                                 <div className={styles.formGroup}>
                                     <label>Dispatch Date</label>
                                     <input type="date" name="dispatchDate" value={filters.dispatchDate} onChange={handleFilterChange} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Payment Status</label>
+                                    <select name="paymentStatus" value={filters.paymentStatus} onChange={handleFilterChange} style={{ padding: '0.65rem 1rem', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '0.95rem', backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }}>
+                                        <option value="All">All</option>
+                                        <option value="Received">Received</option>
+                                        <option value="Pending">Pending</option>
+                                    </select>
                                 </div>
                             </div>
                             <div className={styles.formRow} style={{ marginTop: '1rem', marginBottom: '1.5rem' }}>
