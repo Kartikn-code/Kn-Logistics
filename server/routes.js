@@ -323,35 +323,27 @@ router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) 
 
                     // Handle Excel date serial numbers
                     const parseExcelDate = (val) => {
-                        if (!val) return val;
+                        if (!val || String(val).trim() === '') return null;
                         if (typeof val === 'number') {
                             const excelEpoch = new Date(1899, 11, 30);
                             const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
                             return jsDate.toISOString().split('T')[0];
                         }
-
-                        // Convert typical DD.MM.YY or DD.MM.YYYY to YYYY-MM-DD
                         if (typeof val === 'string') {
-                            const parts = val.split('.');
+                            const trimmed = val.trim();
+                            const parts = trimmed.split('.');
                             if (parts.length === 3) {
-                                let year = parts[2];
-                                let month = parts[1].padStart(2, '0');
-                                let day = parts[0].padStart(2, '0');
-                                if (year.length === 2) {
-                                    year = '20' + year; // Assuming 2000s
-                                }
-                                return `${year}-${month}-${day}`;
+                                let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+                                return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                             }
-
-                            const slashParts = val.split('/');
+                            const slashParts = trimmed.split('/');
                             if (slashParts.length === 3) {
-                                let year = slashParts[2];
-                                let month = slashParts[1].padStart(2, '0');
-                                let day = slashParts[0].padStart(2, '0');
-                                if (year.length === 2) {
-                                    year = '20' + year; // Assuming 2000s
-                                }
-                                return `${year}-${month}-${day}`;
+                                let year = slashParts[2].length === 2 ? '20' + slashParts[2] : slashParts[2];
+                                return `${year}-${slashParts[1].padStart(2, '0')}-${slashParts[0].padStart(2, '0')}`;
+                            }
+                            const dashParts = trimmed.split('-');
+                            if (dashParts.length === 3 && dashParts[2].length === 4) {
+                                return `${dashParts[2]}-${dashParts[1]}-${dashParts[0]}`;
                             }
                         }
                         return val;
@@ -890,24 +882,25 @@ router.post('/payments/upload-basic', verifyToken, upload.single('file'), (req, 
 
                     // Handle Excel dates robustly for Postgres
                     const parseExcelDate = (val) => {
-                        if (!val) return val;
+                        if (!val || String(val).trim() === '') return null;
                         if (typeof val === 'number') {
                             const excelEpoch = new Date(1899, 11, 30);
                             const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
                             return jsDate.toISOString().split('T')[0];
                         }
                         if (typeof val === 'string') {
-                            const parts = val.split('.');
+                            const trimmed = val.trim();
+                            const parts = trimmed.split('.');
                             if (parts.length === 3) {
                                 let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
                                 return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                             }
-                            const slashParts = val.split('/');
+                            const slashParts = trimmed.split('/');
                             if (slashParts.length === 3) {
                                 let year = slashParts[2].length === 2 ? '20' + slashParts[2] : slashParts[2];
                                 return `${year}-${slashParts[1].padStart(2, '0')}-${slashParts[0].padStart(2, '0')}`;
                             }
-                            const dashParts = val.split('-');
+                            const dashParts = trimmed.split('-');
                             if (dashParts.length === 3 && dashParts[2].length === 4) {
                                 return `${dashParts[2]}-${dashParts[1]}-${dashParts[0]}`;
                             }
@@ -1041,28 +1034,29 @@ router.post('/payments/upload-invoice', verifyToken, upload.single('file'), (req
                     const totalReceived = parseAmount(normRow['TOTAL RECEIVED']);
                     const deduction = parseAmount(normRow['DEDUCTION']);
                     const receivedStatus = normRow['RECEIVED STATUS'] || normRow['STATUS'] || '';
-                    let payDate = normRow['DATE'] || null;
+                    let payDate = normRow['PAYMENT DATE'] || normRow['PAYMENTDATE'] || normRow['DATE'] || null;
 
                     // Handle Excel dates robustly for Postgres
                     const parseExcelDate = (val) => {
-                        if (!val) return val;
+                        if (!val || String(val).trim() === '') return null;
                         if (typeof val === 'number') {
                             const excelEpoch = new Date(1899, 11, 30);
                             const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
                             return jsDate.toISOString().split('T')[0];
                         }
                         if (typeof val === 'string') {
-                            const parts = val.split('.');
+                            const trimmed = val.trim();
+                            const parts = trimmed.split('.');
                             if (parts.length === 3) {
                                 let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
                                 return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                             }
-                            const slashParts = val.split('/');
+                            const slashParts = trimmed.split('/');
                             if (slashParts.length === 3) {
                                 let year = slashParts[2].length === 2 ? '20' + slashParts[2] : slashParts[2];
                                 return `${year}-${slashParts[1].padStart(2, '0')}-${slashParts[0].padStart(2, '0')}`;
                             }
-                            const dashParts = val.split('-');
+                            const dashParts = trimmed.split('-');
                             if (dashParts.length === 3 && dashParts[2].length === 4) {
                                 return `${dashParts[2]}-${dashParts[1]}-${dashParts[0]}`;
                             }
