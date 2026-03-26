@@ -5,6 +5,7 @@ import Button from '../components/UI/Button';
 import styles from './Payments.module.css';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, BarChart, Bar, Legend, Cell, PieChart, Pie } from 'recharts';
 import { getBasicStats, uploadBasicPayments, getInvoiceStats, uploadInvoicePayments, getInvoices, updateInvoice, deleteInvoices, deleteAllInvoices } from '../utils/api';
+import { formatDate } from '../utils/dateFormatter';
 
 const Payments = () => {
     const [activeTab, setActiveTab] = useState('basic'); // 'basic' or 'invoice'
@@ -444,7 +445,7 @@ const Payments = () => {
                                         ) : invoices.map(inv => (
                                             <tr key={inv.id}>
                                                 <td><input type="checkbox" checked={selectedInvoiceIds.includes(inv.id)} onChange={() => handleSelectOneInvoice(inv.id)} /></td>
-                                                <td>{inv.paymentDate}</td>
+                                                <td>{formatDate(inv.paymentDate)}</td>
                                                 <td>{inv.invoiceNo}</td>
                                                 <td>₹{Number(inv.myRate || 0).toLocaleString('en-IN')}</td>
                                                 <td>₹{Number(inv.nipponRate || 0).toLocaleString('en-IN')}</td>

@@ -285,8 +285,16 @@ router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) 
                     // Normalize row keys to handle line breaks and spaces in Excel headers
                     const normRow = {};
                     for (let key in row) {
-                        normRow[key.replace(/[\n\r]+/g, '').toUpperCase().trim()] = row[key];
+                        const cleanKey = key.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+                        normRow[cleanKey] = row[key];
                     }
+
+                    const parseAmount = (val) => {
+                        if (val === undefined || val === null || val === '') return 0;
+                        if (typeof val === 'number') return val;
+                        const cleaned = String(val).replace(/[^0-9.-]/g, '');
+                        return parseFloat(cleaned) || 0;
+                    };
 
                     let dispatchDate = normRow['DISPATCH - DATE'] || normRow['DISPATCH-DATE'] || normRow['DISPATCH DATE'] || normRow['DISPATCHDATE'] || normRow['DATE'] || '';
                     const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICE.NO'] || normRow['INVOICE NO.'] || normRow['INVOICENO.'] || normRow['INVOICENO'] || '';
@@ -294,24 +302,24 @@ router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) 
                     const sourceLocation = normRow['FROM'] || normRow['SOURCELOCATION'] || normRow['SOURCE'] || '';
                     const finalDestination = normRow['TO'] || normRow['FINALDESTINATION'] || normRow['DESTINATION'] || '';
                     const poNumber = normRow['PO.NUMBER'] || normRow['PO NUMBER'] || normRow['PONUMBER'] || '';
-                    const tons = parseFloat(normRow['TONS'] || normRow['WEIGHT']) || 0;
+                    const tons = parseAmount(normRow['TONS'] || normRow['WEIGHT']);
                     const truckNo = normRow['TRUCK.NO'] || normRow['TRUCK NO'] || normRow['TRUCKNO'] || normRow['VEHICLENO'] || '';
 
                     let dateOfArrival = normRow['DATE OF ARRIVAL'] || normRow['DATEOFARRIVAL'] || normRow['ARRIVALDATE'] || '';
                     let deliveryDate = normRow['DATE OF DELIVERY'] || normRow['DATEOFDELIVERY'] || normRow['DELIVERYDATE'] || '';
 
-                    const freight = parseFloat(normRow['FREIGHT']) || 0;
-                    const multiPoint = parseFloat(normRow['MULTI- POINT'] || normRow['MULTI-POINT'] || normRow['MULTIPOINT']) || 0;
-                    const loading = parseFloat(normRow['LOADING']) || 0;
+                    const freight = parseAmount(normRow['FREIGHT']);
+                    const multiPoint = parseAmount(normRow['MULTI- POINT'] || normRow['MULTI-POINT'] || normRow['MULTIPOINT']);
+                    const loading = parseAmount(normRow['LOADING']);
 
                     // Handle variations of UN LOADING and HALTING
-                    const unloading = parseFloat(normRow['UN LOADING.'] || normRow['UN LOADING'] || normRow['UNLOADING']) || 0;
-                    const halt = parseFloat(normRow['HALTING'] || normRow['HALT']) || 0;
+                    const unloading = parseAmount(normRow['UN LOADING.'] || normRow['UN LOADING'] || normRow['UNLOADING']);
+                    const halt = parseAmount(normRow['HALTING'] || normRow['HALT']);
 
                     const fuelCost = 0; // Default as not in this Excel template
                     const driverFee = 0; // Default as not in this Excel template
 
-                    const total = parseFloat(normRow['TOTAL']) || (freight + multiPoint + loading + unloading + halt);
+                    const total = parseAmount(normRow['TOTAL']) || (freight + multiPoint + loading + unloading + halt);
 
                     // Handle Excel date serial numbers
                     const parseExcelDate = (val) => {
@@ -865,16 +873,49 @@ router.post('/payments/upload-basic', verifyToken, upload.single('file'), (req, 
                  const batch = rows.slice(i, i + batchSize);
                  await Promise.all(batch.map(async (row) => {
                     const normRow = {};
-                    for (let key in row) normRow[key.trim().toUpperCase()] = row[key];
+                    for (let key in row) {
+                        const cleanKey = key.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+                        normRow[cleanKey] = row[key];
+                    }
+
+                    const parseAmount = (val) => {
+                        if (val === undefined || val === null || val === '') return 0;
+                        if (typeof val === 'number') return val;
+                        const cleaned = String(val).replace(/[^0-9.-]/g, '');
+                        return parseFloat(cleaned) || 0;
+                    };
 
                     let payDate = normRow['PAYMENT RECEIVED DATE'] || normRow['DATE'] || null;
-                    const payAmount = parseFloat(normRow['PAYMENT RECEIVED AMOUNT'] || normRow['AMOUNT']) || 0;
+                    const payAmount = parseAmount(normRow['PAYMENT RECEIVED AMOUNT'] || normRow['AMOUNT']);
 
-                    // Handle Excel dates
-                    if (typeof payDate === 'number') {
-                        const jsDate = new Date((payDate - 25569) * 86400 * 1000); // Excel epoch conversion
-                        payDate = jsDate.toISOString().split('T')[0];
-                    }
+                    // Handle Excel dates robustly for Postgres
+                    const parseExcelDate = (val) => {
+                        if (!val) return val;
+                        if (typeof val === 'number') {
+                            const excelEpoch = new Date(1899, 11, 30);
+                            const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
+                            return jsDate.toISOString().split('T')[0];
+                        }
+                        if (typeof val === 'string') {
+                            const parts = val.split('.');
+                            if (parts.length === 3) {
+                                let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+                                return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                            }
+                            const slashParts = val.split('/');
+                            if (slashParts.length === 3) {
+                                let year = slashParts[2].length === 2 ? '20' + slashParts[2] : slashParts[2];
+                                return `${year}-${slashParts[1].padStart(2, '0')}-${slashParts[0].padStart(2, '0')}`;
+                            }
+                            const dashParts = val.split('-');
+                            if (dashParts.length === 3 && dashParts[2].length === 4) {
+                                return `${dashParts[2]}-${dashParts[1]}-${dashParts[0]}`;
+                            }
+                        }
+                        return val;
+                    };
+                    
+                    payDate = parseExcelDate(payDate);
 
                     if (payAmount > 0) {
                         try {
@@ -981,21 +1022,55 @@ router.post('/payments/upload-invoice', verifyToken, upload.single('file'), (req
                  const batch = rows.slice(i, i + batchSize);
                  await Promise.all(batch.map(async (row) => {
                     const normRow = {};
-                    for (let key in row) normRow[key.trim().toUpperCase()] = row[key];
+                    for (let key in row) {
+                        const cleanKey = key.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+                        normRow[cleanKey] = row[key];
+                    }
+
+                    const parseAmount = (val) => {
+                        if (val === undefined || val === null || val === '') return 0;
+                        if (typeof val === 'number') return val;
+                        const cleaned = String(val).replace(/[^0-9.-]/g, '');
+                        return parseFloat(cleaned) || 0;
+                    };
 
                     const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICENO'] || '';
-                    const myRate = parseFloat(normRow['MY RATE']) || 0;
-                    const nipponRate = parseFloat(normRow['NIPPON RATE']) || 0;
-                    const tds = parseFloat(normRow['TDS']) || 0;
-                    const totalReceived = parseFloat(normRow['TOTAL RECEIVED']) || 0;
-                    const deduction = parseFloat(normRow['DEDUCTION']) || 0;
+                    const myRate = parseAmount(normRow['MY RATE']);
+                    const nipponRate = parseAmount(normRow['NIPPON RATE']);
+                    const tds = parseAmount(normRow['TDS']);
+                    const totalReceived = parseAmount(normRow['TOTAL RECEIVED']);
+                    const deduction = parseAmount(normRow['DEDUCTION']);
                     const receivedStatus = normRow['RECEIVED STATUS'] || normRow['STATUS'] || '';
                     let payDate = normRow['DATE'] || null;
 
-                    if (typeof payDate === 'number') {
-                        const jsDate = new Date((payDate - 25569) * 86400 * 1000);
-                        payDate = jsDate.toISOString().split('T')[0];
-                    }
+                    // Handle Excel dates robustly for Postgres
+                    const parseExcelDate = (val) => {
+                        if (!val) return val;
+                        if (typeof val === 'number') {
+                            const excelEpoch = new Date(1899, 11, 30);
+                            const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
+                            return jsDate.toISOString().split('T')[0];
+                        }
+                        if (typeof val === 'string') {
+                            const parts = val.split('.');
+                            if (parts.length === 3) {
+                                let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+                                return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                            }
+                            const slashParts = val.split('/');
+                            if (slashParts.length === 3) {
+                                let year = slashParts[2].length === 2 ? '20' + slashParts[2] : slashParts[2];
+                                return `${year}-${slashParts[1].padStart(2, '0')}-${slashParts[0].padStart(2, '0')}`;
+                            }
+                            const dashParts = val.split('-');
+                            if (dashParts.length === 3 && dashParts[2].length === 4) {
+                                return `${dashParts[2]}-${dashParts[1]}-${dashParts[0]}`;
+                            }
+                        }
+                        return val;
+                    };
+                    
+                    payDate = parseExcelDate(payDate);
 
                     if (invoiceNo) {
                         try {
