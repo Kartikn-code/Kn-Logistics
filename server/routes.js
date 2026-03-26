@@ -278,120 +278,124 @@ router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) 
         let skipped = 0;
 
         const processRows = async () => {
-            for (const row of rows) {
-                // Normalize row keys to handle line breaks and spaces in Excel headers
-                const normRow = {};
-                for (let key in row) {
-                    normRow[key.replace(/[\n\r]+/g, '').toUpperCase().trim()] = row[key];
-                }
-
-                let dispatchDate = normRow['DISPATCH - DATE'] || normRow['DISPATCH-DATE'] || normRow['DISPATCH DATE'] || normRow['DISPATCHDATE'] || normRow['DATE'] || '';
-                const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICE.NO'] || normRow['INVOICE NO.'] || normRow['INVOICENO.'] || normRow['INVOICENO'] || '';
-                const lrNo = normRow['LR. NO'] || normRow['LR.NO'] || normRow['LR NO'] || normRow['LRNO'] || '';
-                const sourceLocation = normRow['FROM'] || normRow['SOURCELOCATION'] || normRow['SOURCE'] || '';
-                const finalDestination = normRow['TO'] || normRow['FINALDESTINATION'] || normRow['DESTINATION'] || '';
-                const poNumber = normRow['PO.NUMBER'] || normRow['PO NUMBER'] || normRow['PONUMBER'] || '';
-                const tons = parseFloat(normRow['TONS'] || normRow['WEIGHT']) || 0;
-                const truckNo = normRow['TRUCK.NO'] || normRow['TRUCK NO'] || normRow['TRUCKNO'] || normRow['VEHICLENO'] || '';
-
-                let dateOfArrival = normRow['DATE OF ARRIVAL'] || normRow['DATEOFARRIVAL'] || normRow['ARRIVALDATE'] || '';
-                let deliveryDate = normRow['DATE OF DELIVERY'] || normRow['DATEOFDELIVERY'] || normRow['DELIVERYDATE'] || '';
-
-                const freight = parseFloat(normRow['FREIGHT']) || 0;
-                const multiPoint = parseFloat(normRow['MULTI- POINT'] || normRow['MULTI-POINT'] || normRow['MULTIPOINT']) || 0;
-                const loading = parseFloat(normRow['LOADING']) || 0;
-
-                // Handle variations of UN LOADING and HALTING
-                const unloading = parseFloat(normRow['UN LOADING.'] || normRow['UN LOADING'] || normRow['UNLOADING']) || 0;
-                const halt = parseFloat(normRow['HALTING'] || normRow['HALT']) || 0;
-
-                const fuelCost = 0; // Default as not in this Excel template
-                const driverFee = 0; // Default as not in this Excel template
-
-                const total = parseFloat(normRow['TOTAL']) || (freight + multiPoint + loading + unloading + halt);
-
-                // Handle Excel date serial numbers
-                const parseExcelDate = (val) => {
-                    if (!val) return val;
-                    if (typeof val === 'number') {
-                        const excelEpoch = new Date(1899, 11, 30);
-                        const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
-                        return jsDate.toISOString().split('T')[0];
+            const batchSize = 25;
+            for (let i = 0; i < rows.length; i += batchSize) {
+                const batch = rows.slice(i, i + batchSize);
+                await Promise.all(batch.map(async (row) => {
+                    // Normalize row keys to handle line breaks and spaces in Excel headers
+                    const normRow = {};
+                    for (let key in row) {
+                        normRow[key.replace(/[\n\r]+/g, '').toUpperCase().trim()] = row[key];
                     }
 
-                    // Convert typical DD.MM.YY or DD.MM.YYYY to YYYY-MM-DD
-                    if (typeof val === 'string') {
-                        const parts = val.split('.');
-                        if (parts.length === 3) {
-                            let year = parts[2];
-                            let month = parts[1].padStart(2, '0');
-                            let day = parts[0].padStart(2, '0');
-                            if (year.length === 2) {
-                                year = '20' + year; // Assuming 2000s
-                            }
-                            return `${year}-${month}-${day}`;
+                    let dispatchDate = normRow['DISPATCH - DATE'] || normRow['DISPATCH-DATE'] || normRow['DISPATCH DATE'] || normRow['DISPATCHDATE'] || normRow['DATE'] || '';
+                    const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICE.NO'] || normRow['INVOICE NO.'] || normRow['INVOICENO.'] || normRow['INVOICENO'] || '';
+                    const lrNo = normRow['LR. NO'] || normRow['LR.NO'] || normRow['LR NO'] || normRow['LRNO'] || '';
+                    const sourceLocation = normRow['FROM'] || normRow['SOURCELOCATION'] || normRow['SOURCE'] || '';
+                    const finalDestination = normRow['TO'] || normRow['FINALDESTINATION'] || normRow['DESTINATION'] || '';
+                    const poNumber = normRow['PO.NUMBER'] || normRow['PO NUMBER'] || normRow['PONUMBER'] || '';
+                    const tons = parseFloat(normRow['TONS'] || normRow['WEIGHT']) || 0;
+                    const truckNo = normRow['TRUCK.NO'] || normRow['TRUCK NO'] || normRow['TRUCKNO'] || normRow['VEHICLENO'] || '';
+
+                    let dateOfArrival = normRow['DATE OF ARRIVAL'] || normRow['DATEOFARRIVAL'] || normRow['ARRIVALDATE'] || '';
+                    let deliveryDate = normRow['DATE OF DELIVERY'] || normRow['DATEOFDELIVERY'] || normRow['DELIVERYDATE'] || '';
+
+                    const freight = parseFloat(normRow['FREIGHT']) || 0;
+                    const multiPoint = parseFloat(normRow['MULTI- POINT'] || normRow['MULTI-POINT'] || normRow['MULTIPOINT']) || 0;
+                    const loading = parseFloat(normRow['LOADING']) || 0;
+
+                    // Handle variations of UN LOADING and HALTING
+                    const unloading = parseFloat(normRow['UN LOADING.'] || normRow['UN LOADING'] || normRow['UNLOADING']) || 0;
+                    const halt = parseFloat(normRow['HALTING'] || normRow['HALT']) || 0;
+
+                    const fuelCost = 0; // Default as not in this Excel template
+                    const driverFee = 0; // Default as not in this Excel template
+
+                    const total = parseFloat(normRow['TOTAL']) || (freight + multiPoint + loading + unloading + halt);
+
+                    // Handle Excel date serial numbers
+                    const parseExcelDate = (val) => {
+                        if (!val) return val;
+                        if (typeof val === 'number') {
+                            const excelEpoch = new Date(1899, 11, 30);
+                            const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
+                            return jsDate.toISOString().split('T')[0];
                         }
 
-                        const slashParts = val.split('/');
-                        if (slashParts.length === 3) {
-                            let year = slashParts[2];
-                            let month = slashParts[1].padStart(2, '0');
-                            let day = slashParts[0].padStart(2, '0');
-                            if (year.length === 2) {
-                                year = '20' + year; // Assuming 2000s
-                            }
-                            return `${year}-${month}-${day}`;
-                        }
-                    }
-                    return val;
-                };
-
-                dispatchDate = parseExcelDate(dispatchDate) || null;
-                dateOfArrival = parseExcelDate(dateOfArrival) || null;
-                deliveryDate = parseExcelDate(deliveryDate) || null;
-
-                // Check for duplicate LR number
-                if (lrNo) {
-                    try {
-                        const existing = await new Promise((resolve) => {
-                            db.get('SELECT id FROM dispatch_records WHERE lrNo = ?', [lrNo], (err, row) => {
-                                resolve(row);
-                            });
-                        });
-                        if (existing) {
-                            skipped++;
-                            await new Promise((resolve) => {
-                                db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
-                                    [req.file ? req.file.originalname : 'Upload', lrNo, 'Duplicate LR number found'],
-                                    () => resolve()
-                                );
-                            });
-                            continue; // Skip this row as LR No. already exists
-                        }
-                    } catch (e) {
-                         // silently ignore select error and proceed
-                    }
-                }
-
-                if (dispatchDate && truckNo) {
-                    try {
-                        await new Promise((resolve, reject) => {
-                            db.run(sql, [dispatchDate, invoiceNo, lrNo, sourceLocation, finalDestination, poNumber, tons, truckNo, dateOfArrival, deliveryDate, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee, total], (err) => {
-                                if (err) {
-                                    errors++;
-                                    reject(err);
-                                } else {
-                                    completed++;
-                                    resolve();
+                        // Convert typical DD.MM.YY or DD.MM.YYYY to YYYY-MM-DD
+                        if (typeof val === 'string') {
+                            const parts = val.split('.');
+                            if (parts.length === 3) {
+                                let year = parts[2];
+                                let month = parts[1].padStart(2, '0');
+                                let day = parts[0].padStart(2, '0');
+                                if (year.length === 2) {
+                                    year = '20' + year; // Assuming 2000s
                                 }
+                                return `${year}-${month}-${day}`;
+                            }
+
+                            const slashParts = val.split('/');
+                            if (slashParts.length === 3) {
+                                let year = slashParts[2];
+                                let month = slashParts[1].padStart(2, '0');
+                                let day = slashParts[0].padStart(2, '0');
+                                if (year.length === 2) {
+                                    year = '20' + year; // Assuming 2000s
+                                }
+                                return `${year}-${month}-${day}`;
+                            }
+                        }
+                        return val;
+                    };
+
+                    dispatchDate = parseExcelDate(dispatchDate) || null;
+                    dateOfArrival = parseExcelDate(dateOfArrival) || null;
+                    deliveryDate = parseExcelDate(deliveryDate) || null;
+
+                    // Check for duplicate LR number
+                    if (lrNo) {
+                        try {
+                            const existing = await new Promise((resolve) => {
+                                db.get('SELECT id FROM dispatch_records WHERE lrNo = ?', [lrNo], (err, row) => {
+                                    resolve(row);
+                                });
                             });
-                        });
-                    } catch (e) {
-                        // Proceed with loop even if error
+                            if (existing) {
+                                skipped++;
+                                await new Promise((resolve) => {
+                                    db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
+                                        [req.file ? req.file.originalname : 'Upload', lrNo, 'Duplicate LR number found'],
+                                        () => resolve()
+                                    );
+                                });
+                                return; // Skip this row as LR No. already exists
+                            }
+                        } catch (e) {
+                             // silently ignore select error and proceed
+                        }
                     }
-                } else {
-                    skipped++;
-                }
+
+                    if (dispatchDate && truckNo) {
+                        try {
+                            await new Promise((resolve, reject) => {
+                                db.run(sql, [dispatchDate, invoiceNo, lrNo, sourceLocation, finalDestination, poNumber, tons, truckNo, dateOfArrival, deliveryDate, freight, multiPoint, loading, unloading, halt, fuelCost, driverFee, total], (err) => {
+                                    if (err) {
+                                        errors++;
+                                        reject(err);
+                                    } else {
+                                        completed++;
+                                        resolve();
+                                    }
+                                });
+                            });
+                        } catch (e) {
+                            // Proceed with loop even if error
+                        }
+                    } else {
+                        skipped++;
+                    }
+                }));
             }
 
             if (!res.headersSent) {
@@ -856,46 +860,50 @@ router.post('/payments/upload-basic', verifyToken, upload.single('file'), (req, 
         let completed = 0, errors = 0, skipped = 0;
 
         const processRows = async () => {
-             for (const row of rows) {
-                const normRow = {};
-                for (let key in row) normRow[key.trim().toUpperCase()] = row[key];
+             const batchSize = 25;
+             for (let i = 0; i < rows.length; i += batchSize) {
+                 const batch = rows.slice(i, i + batchSize);
+                 await Promise.all(batch.map(async (row) => {
+                    const normRow = {};
+                    for (let key in row) normRow[key.trim().toUpperCase()] = row[key];
 
-                let payDate = normRow['PAYMENT RECEIVED DATE'] || normRow['DATE'] || null;
-                const payAmount = parseFloat(normRow['PAYMENT RECEIVED AMOUNT'] || normRow['AMOUNT']) || 0;
+                    let payDate = normRow['PAYMENT RECEIVED DATE'] || normRow['DATE'] || null;
+                    const payAmount = parseFloat(normRow['PAYMENT RECEIVED AMOUNT'] || normRow['AMOUNT']) || 0;
 
-                // Handle Excel dates
-                if (typeof payDate === 'number') {
-                    const jsDate = new Date((payDate - 25569) * 86400 * 1000); // Excel epoch conversion
-                    payDate = jsDate.toISOString().split('T')[0];
-                }
+                    // Handle Excel dates
+                    if (typeof payDate === 'number') {
+                        const jsDate = new Date((payDate - 25569) * 86400 * 1000); // Excel epoch conversion
+                        payDate = jsDate.toISOString().split('T')[0];
+                    }
 
-                if (payAmount > 0) {
-                    try {
-                        const existing = await new Promise((resolve) => {
-                            db.get('SELECT id FROM basic_payments WHERE paymentDate = ? AND paymentAmount = ?', [payDate, payAmount], (err, row) => resolve(row));
-                        });
-                        
-                        if (existing) {
-                            skipped++;
-                            await new Promise((resolve) => {
-                                db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
-                                    [req.file ? req.file.originalname : 'Upload', `Date: ${payDate}, Amount: ${payAmount}`, 'Duplicate Basic Payment found'],
-                                    () => resolve()
-                                );
+                    if (payAmount > 0) {
+                        try {
+                            const existing = await new Promise((resolve) => {
+                                db.get('SELECT id FROM basic_payments WHERE paymentDate = ? AND paymentAmount = ?', [payDate, payAmount], (err, row) => resolve(row));
                             });
-                            continue;
-                        }
+                            
+                            if (existing) {
+                                skipped++;
+                                await new Promise((resolve) => {
+                                    db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
+                                        [req.file ? req.file.originalname : 'Upload', `Date: ${payDate}, Amount: ${payAmount}`, 'Duplicate Basic Payment found'],
+                                        () => resolve()
+                                    );
+                                });
+                                return;
+                            }
 
-                        await new Promise((resolve, reject) => {
-                            db.run(sql, [payDate, payAmount], (err) => {
-                                if (err) { errors++; reject(err); }
-                                else { completed++; resolve(); }
+                            await new Promise((resolve, reject) => {
+                                db.run(sql, [payDate, payAmount], (err) => {
+                                    if (err) { errors++; reject(err); }
+                                    else { completed++; resolve(); }
+                                });
                             });
-                        });
-                    } catch (e) {}
-                }
+                        } catch (e) {}
+                    }
+                 }));
              }
-             if (!res.headersSent) res.json({ message: `Processed ${rows.length} rows`, success: completed, failed: errors });
+             if (!res.headersSent) res.json({ message: `Processed ${rows.length} rows`, success: completed, failed: errors, skipped });
         };
         processRows().catch(() => { if (!res.headersSent) res.status(500).json({ error: 'Processing error' }); });
     } catch (error) {
@@ -968,49 +976,53 @@ router.post('/payments/upload-invoice', verifyToken, upload.single('file'), (req
         let completed = 0, errors = 0, skipped = 0;
 
         const processRows = async () => {
-             for (const row of rows) {
-                const normRow = {};
-                for (let key in row) normRow[key.trim().toUpperCase()] = row[key];
+             const batchSize = 25;
+             for (let i = 0; i < rows.length; i += batchSize) {
+                 const batch = rows.slice(i, i + batchSize);
+                 await Promise.all(batch.map(async (row) => {
+                    const normRow = {};
+                    for (let key in row) normRow[key.trim().toUpperCase()] = row[key];
 
-                const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICENO'] || '';
-                const myRate = parseFloat(normRow['MY RATE']) || 0;
-                const nipponRate = parseFloat(normRow['NIPPON RATE']) || 0;
-                const tds = parseFloat(normRow['TDS']) || 0;
-                const totalReceived = parseFloat(normRow['TOTAL RECEIVED']) || 0;
-                const deduction = parseFloat(normRow['DEDUCTION']) || 0;
-                const receivedStatus = normRow['RECEIVED STATUS'] || normRow['STATUS'] || '';
-                let payDate = normRow['DATE'] || null;
+                    const invoiceNo = normRow['INVOICE NO'] || normRow['INVOICENO'] || '';
+                    const myRate = parseFloat(normRow['MY RATE']) || 0;
+                    const nipponRate = parseFloat(normRow['NIPPON RATE']) || 0;
+                    const tds = parseFloat(normRow['TDS']) || 0;
+                    const totalReceived = parseFloat(normRow['TOTAL RECEIVED']) || 0;
+                    const deduction = parseFloat(normRow['DEDUCTION']) || 0;
+                    const receivedStatus = normRow['RECEIVED STATUS'] || normRow['STATUS'] || '';
+                    let payDate = normRow['DATE'] || null;
 
-                if (typeof payDate === 'number') {
-                    const jsDate = new Date((payDate - 25569) * 86400 * 1000);
-                    payDate = jsDate.toISOString().split('T')[0];
-                }
+                    if (typeof payDate === 'number') {
+                        const jsDate = new Date((payDate - 25569) * 86400 * 1000);
+                        payDate = jsDate.toISOString().split('T')[0];
+                    }
 
-                if (invoiceNo) {
-                    try {
-                        const existing = await new Promise((resolve) => {
-                            db.get('SELECT id FROM invoice_payments WHERE invoiceNo = ?', [invoiceNo], (err, row) => resolve(row));
-                        });
-
-                        if (existing) {
-                            skipped++;
-                            await new Promise((resolve) => {
-                                db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
-                                    [req.file ? req.file.originalname : 'Upload', invoiceNo, 'Duplicate Invoice number found'],
-                                    () => resolve()
-                                );
+                    if (invoiceNo) {
+                        try {
+                            const existing = await new Promise((resolve) => {
+                                db.get('SELECT id FROM invoice_payments WHERE invoiceNo = ?', [invoiceNo], (err, row) => resolve(row));
                             });
-                            continue;
-                        }
 
-                        await new Promise((resolve, reject) => {
-                            db.run(sql, [invoiceNo, myRate, nipponRate, tds, totalReceived, deduction, receivedStatus, payDate], (err) => {
-                                if (err) { errors++; reject(err); }
-                                else { completed++; resolve(); }
+                            if (existing) {
+                                skipped++;
+                                await new Promise((resolve) => {
+                                    db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
+                                        [req.file ? req.file.originalname : 'Upload', invoiceNo, 'Duplicate Invoice number found'],
+                                        () => resolve()
+                                    );
+                                });
+                                return;
+                            }
+
+                            await new Promise((resolve, reject) => {
+                                db.run(sql, [invoiceNo, myRate, nipponRate, tds, totalReceived, deduction, receivedStatus, payDate], (err) => {
+                                    if (err) { errors++; reject(err); }
+                                    else { completed++; resolve(); }
+                                });
                             });
-                        });
-                    } catch (e) {}
-                }
+                        } catch (e) {}
+                    }
+                 }));
              }
              if (!res.headersSent) {
                  const dupMsg = skipped > 0 ? ` (${skipped} duplicates logged to unsaved records)` : '';
