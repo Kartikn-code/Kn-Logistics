@@ -948,22 +948,26 @@ router.post('/payments/upload-basic', verifyToken, upload.single('file'), (req, 
 // GET Invoice Payments Stats
 router.get('/payments/invoice-stats', verifyToken, async (req, res) => {
     try {
+        const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+        const coalesceFunc = isPg ? 'COALESCE' : 'IFNULL';
+
         const result = await new Promise((resolve) => db.get(`
             SELECT 
                 SUM(myRate) as totalBillValue,
-                SUM(CASE WHEN LOWER(TRIM(IFNULL(receivedStatus, ''))) IN ('received', 'paid', 'done', 'yes') THEN myRate ELSE 0 END) as myRateReceived,
-                SUM(CASE WHEN LOWER(TRIM(IFNULL(receivedStatus, ''))) IN ('received', 'paid', 'done', 'yes') THEN deduction ELSE 0 END) as deductionReceived,
-                SUM(CASE WHEN LOWER(TRIM(IFNULL(receivedStatus, ''))) NOT IN ('received', 'paid', 'done', 'yes') THEN myRate ELSE 0 END) as yetToReceive,
+                SUM(CASE WHEN LOWER(TRIM(${coalesceFunc}(receivedStatus, ''))) IN ('received', 'paid', 'done', 'yes') THEN myRate ELSE 0 END) as myRateReceived,
+                SUM(CASE WHEN LOWER(TRIM(${coalesceFunc}(receivedStatus, ''))) IN ('received', 'paid', 'done', 'yes') THEN deduction ELSE 0 END) as deductionReceived,
+                SUM(CASE WHEN LOWER(TRIM(${coalesceFunc}(receivedStatus, ''))) NOT IN ('received', 'paid', 'done', 'yes') THEN myRate ELSE 0 END) as yetToReceive,
                 SUM(nipponRate) as nipponRateSum,
                 SUM(tds) as tds,
                 SUM(totalReceived) as totalReceived 
             FROM invoice_payments`, [],
         (err, row) => resolve(row)));
 
+        const groupByCollate = isPg ? '' : 'COLLATE NOCASE';
         const receivedStatusCounts = await new Promise((resolve) => db.all(`
             SELECT receivedStatus, COUNT(*) as count 
             FROM invoice_payments 
-            GROUP BY receivedStatus COLLATE NOCASE`, [], 
+            GROUP BY receivedStatus ${groupByCollate}`, [], 
         (err, rows) => resolve(rows || [])));
         
         let receivedCount = 0;
