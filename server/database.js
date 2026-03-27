@@ -97,7 +97,13 @@ const initializeDatabase = async () => {
                 'totaltrips': 'totalTrips',
                 'trucknumber': 'truckNumber',
                 'intransit': 'inTransit',
-                'activetrucks': 'activeTrucks'
+                'activetrucks': 'activeTrucks',
+                'myrate': 'myRate',
+                'nipponrate': 'nipponRate',
+                'totalreceived': 'totalReceived',
+                'receivedstatus': 'receivedStatus',
+                'paymentdate': 'paymentDate',
+                'paymentamount': 'paymentAmount'
             };
 
             for (const [lower, camel] of Object.entries(keyMap)) {
@@ -112,7 +118,8 @@ const initializeDatabase = async () => {
                 'tons', 'freight', 'multiPoint', 'loading', 'unloading', 'halt',
                 'fuelCost', 'driverFee', 'total', 'totalEarnings', 'totalExpenses',
                 'netProfit', 'grandTotal', 'totalTons', 'totalTrips', 'earnings',
-                'expenses', 'profit', 'trips', 'inTransit', 'activeTrucks'
+                'expenses', 'profit', 'trips', 'inTransit', 'activeTrucks',
+                'myRate', 'nipponRate', 'tds', 'totalReceived', 'deduction', 'paymentAmount'
             ];
 
             for (const key of Object.keys(mapped)) {
