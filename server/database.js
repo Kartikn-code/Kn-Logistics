@@ -26,13 +26,14 @@ let dbWrapper = {
 
 const initializeDatabase = async () => {
     // 1. Determine if we are connecting to a remote PostgreSQL DB or Local SQLite
-    const isPostgres = !!process.env.DATABASE_URL;
+    const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+    const isPostgres = !!connectionString;
 
     if (isPostgres) {
         console.log("🐘 Connecting to PostgreSQL database...");
         dbWrapper.type = 'postgres';
         dbWrapper.pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
+            connectionString: connectionString,
             ssl: { rejectUnauthorized: false } // Typical for Supabase/Neon
         });
 

@@ -93,7 +93,8 @@ const Payments = () => {
     ];
 
     const invoiceChartData = [
-        { name: 'Total Bill Value', amount: invoiceStats.totalBillValue || 0, fill: '#818cf8' },
+        { name: 'My Rate (Total)', amount: invoiceStats.totalBillValue || 0, fill: '#818cf8' },
+        { name: 'Nippon Rate', amount: invoiceStats.nipponRateSum || 0, fill: '#a78bfa' },
         { name: 'Received', amount: invoiceStats.totalAmountReceived || 0, fill: '#34d399' },
         { name: 'Deductions', amount: invoiceStats.totalAmountDeducted || 0, fill: '#fbbf24' },
         { name: 'Yet to Receive', amount: invoiceStats.yetToReceive || 0, fill: '#fb7185' },

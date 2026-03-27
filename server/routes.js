@@ -420,7 +420,7 @@ router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) 
 
 // GET Annual Summary
 router.get('/analytics/annual-summary', verifyToken, (req, res) => {
-    const isPg = !!process.env.DATABASE_URL;
+    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
     const yearExt = isPg ? "TO_CHAR(d.dispatchDate, 'YYYY')" : "strftime('%Y', d.dispatchDate)";
     const { paymentStatus } = req.query;
 
@@ -461,7 +461,7 @@ router.get('/analytics/annual-summary', verifyToken, (req, res) => {
 
 // GET Truck-based Earnings
 router.get('/analytics/truck-earnings', verifyToken, (req, res) => {
-    const isPg = !!process.env.DATABASE_URL;
+    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
     const yearExt = isPg ? "TO_CHAR(d.dispatchDate, 'YYYY')" : "strftime('%Y', d.dispatchDate)";
     const year = req.query.year || new Date().getFullYear().toString();
     const { paymentStatus } = req.query;
@@ -503,7 +503,7 @@ router.get('/analytics/truck-earnings', verifyToken, (req, res) => {
 
 // GET Monthly Earnings
 router.get('/analytics/monthly-earnings', verifyToken, (req, res) => {
-    const isPg = !!process.env.DATABASE_URL;
+    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
     const yearExt = isPg ? "TO_CHAR(d.dispatchDate, 'YYYY')" : "strftime('%Y', d.dispatchDate)";
     const monthExt = isPg ? "TO_CHAR(d.dispatchDate, 'MM')" : "strftime('%m', d.dispatchDate)";
     const year = req.query.year || new Date().getFullYear().toString();
@@ -594,7 +594,7 @@ router.get('/analytics/filtered-records', verifyToken, (req, res) => {
     }
 
     if (year) {
-        const isPg = !!process.env.DATABASE_URL;
+        const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
         if (isPg) {
             sql += " AND TO_CHAR(d.dispatchDate, 'YYYY') = ?";
             params.push(year);
@@ -610,7 +610,7 @@ router.get('/analytics/filtered-records', verifyToken, (req, res) => {
     }
 
     if (dispatchDate) {
-        const isPg = !!process.env.DATABASE_URL;
+        const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
         if (isPg) {
             sql += " AND TO_CHAR(d.dispatchDate, 'YYYY-MM-DD') = ?";
             params.push(dispatchDate);
@@ -621,7 +621,7 @@ router.get('/analytics/filtered-records', verifyToken, (req, res) => {
     }
 
     if (deliveryDate) {
-        const isPg = !!process.env.DATABASE_URL;
+        const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
         if (isPg) {
             sql += " AND TO_CHAR(d.deliveryDate, 'YYYY-MM-DD') = ?";
             params.push(deliveryDate);
@@ -979,6 +979,7 @@ router.get('/payments/invoice-stats', verifyToken, async (req, res) => {
         });
 
         const totalBillValue = result?.totalBillValue || 0;
+        const nipponRateSum = result?.nipponRateSum || 0;
         const totalAmountReceived = result?.myRateReceived || 0;
         const totalAmountDeducted = result?.deductionReceived || 0;
         const yetToReceive = result?.yetToReceive || 0;
@@ -989,7 +990,7 @@ router.get('/payments/invoice-stats', verifyToken, async (req, res) => {
         // Updated to sum of Invoice Pending (Yet to Receive) and TDS pending
         const totalBalance = yetToReceive + tds;
 
-        res.json({ totalBillValue, totalAmountReceived, totalAmountDeducted, yetToReceive, tds, totalReceived, totalBalance, receivedCount, notReceivedCount });
+        res.json({ totalBillValue, nipponRateSum, totalAmountReceived, totalAmountDeducted, yetToReceive, tds, totalReceived, totalBalance, receivedCount, notReceivedCount });
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch invoice stats' });
     }
