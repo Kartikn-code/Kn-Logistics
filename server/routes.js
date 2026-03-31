@@ -28,6 +28,7 @@ const verifyToken = (req, res, next) => {
             return res.status(401).json({ error: 'Failed to authenticate token' });
         }
         req.userId = decoded.id;
+        req.userRole = decoded.role;
         next();
     });
 };
@@ -845,6 +846,45 @@ router.get('/payments/basic-stats', verifyToken, async (req, res) => {
     }
 });
 
+// GET Paginated Basic Payments
+router.get('/payments/basic', verifyToken, (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    let countSql = `SELECT COUNT(*) as total FROM basic_payments`;
+    let dataSql = `SELECT * FROM basic_payments ORDER BY paymentDate ASC, id ASC LIMIT ? OFFSET ?`;
+
+    db.get(countSql, [], (err, countRow) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        db.all(dataSql, [limit, offset], (err, rows) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            res.json({
+                data: rows,
+                pagination: {
+                    total: countRow.total,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(countRow.total / limit)
+                }
+            });
+        });
+    });
+});
+
+// DELETE All Basic Payments
+router.delete('/payments/basic/all', verifyToken, (req, res) => {
+    if (req.userRole !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+    db.run(`DELETE FROM basic_payments`, [], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: `Successfully deleted all basic payments` });
+    });
+});
+
 // UPLOAD Basic Payments Excel
 router.post('/payments/upload-basic', verifyToken, upload.single('file'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -1186,10 +1226,75 @@ router.delete('/payments/invoices', verifyToken, (req, res) => {
 
 // DELETE All Invoice Payments
 router.delete('/payments/invoices/all', verifyToken, (req, res) => {
+    if (req.userRole !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
     db.run(`DELETE FROM invoice_payments`, [], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: `Successfully deleted all invoice records` });
     });
+});
+
+// GET Payment Analytics Insights (Basic Payments Only)
+router.get('/payments/analytics-insights', verifyToken, async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    let dateFilter = '';
+    let params = [];
+    if (startDate && endDate) {
+        dateFilter = `WHERE paymentDate >= ? AND paymentDate <= ?`;
+        params = [startDate, endDate];
+    } else if (startDate) {
+        dateFilter = `WHERE paymentDate >= ?`;
+        params = [startDate];
+    } else if (endDate) {
+        dateFilter = `WHERE paymentDate <= ?`;
+        params = [endDate];
+    }
+
+    try {
+        const basicSql = `SELECT SUM(paymentAmount) as total, COUNT(*) as count FROM basic_payments ${dateFilter}`;
+        const basicResult = await new Promise((resolve) => db.get(basicSql, params, (err, row) => resolve(row)));
+
+        const totalReceived = basicResult?.total || 0;
+        const transactionCount = basicResult?.count || 0;
+
+        res.json({
+            totalReceived,
+            transactionCount
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch analytics' });
+    }
+});
+
+// GET Yearly Breakdown - Monthly View (Basic Payments Only)
+router.get('/payments/yearly-breakdown', verifyToken, async (req, res) => {
+    const year = req.query.year || new Date().getFullYear().toString();
+    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+    const yearExt = isPg ? "TO_CHAR(paymentDate, 'YYYY')" : "strftime('%Y', paymentDate)";
+    const monthExt = isPg ? "TO_CHAR(paymentDate, 'MM')" : "strftime('%m', paymentDate)";
+
+    try {
+        const basicSql = `SELECT ${monthExt} as month, SUM(paymentAmount) as total FROM basic_payments WHERE ${yearExt} = ? GROUP BY ${monthExt}`;
+        const basicRows = await new Promise((resolve) => db.all(basicSql, [year], (err, rows) => resolve(rows || [])));
+
+        const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        const fullData = months.map((m, i) => {
+            const found = basicRows.find(r => r.month === m);
+            return {
+                month: m,
+                monthName: monthNames[i],
+                totalReceived: found ? found.total : 0
+            };
+        });
+
+        res.json({ data: fullData });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch yearly breakdown' });
+    }
 });
 
 // GET Unsaved Records

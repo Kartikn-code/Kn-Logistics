@@ -302,6 +302,30 @@ export const getBasicStats = async () => {
     }
 };
 
+export const getBasicPayments = async (page = 1, limit = 10) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/basic?page=${page}&limit=${limit}`);
+        if (!response.ok) throw new Error('Failed to fetch basic payments');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching basic payments:', error);
+        throw error;
+    }
+};
+
+export const deleteAllBasicPayments = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/basic/all`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete all basic payments');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting all basic payments:', error);
+        throw error;
+    }
+};
+
 export const uploadBasicPayments = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -394,5 +418,33 @@ export const deleteAllInvoices = async () => {
     } catch (error) {
         console.error('Error deleting all invoices:', error);
         throw error;
+    }
+};
+
+export const getPaymentAnalytics = async (startDate, endDate) => {
+    try {
+        let qs = '';
+        if (startDate && endDate) qs = `?startDate=${startDate}&endDate=${endDate}`;
+        else if (startDate) qs = `?startDate=${startDate}`;
+        else if (endDate) qs = `?endDate=${endDate}`;
+
+        const response = await fetchWithAuth(`${API_URL}/payments/analytics-insights${qs}`);
+        if (!response.ok) throw new Error('Failed to fetch analytics');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching payment analytics:', error);
+        return { totalReceived: 0, transactionCount: 0 };
+    }
+};
+
+export const getPaymentYearlyBreakdown = async (year) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/yearly-breakdown?year=${year}`);
+        if (!response.ok) throw new Error('Failed to fetch yearly breakdown');
+        const result = await response.json();
+        return result.data || [];
+    } catch (error) {
+        console.error('Error fetching yearly breakdown:', error);
+        return [];
     }
 };

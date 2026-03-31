@@ -281,6 +281,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .deleteBtn {
@@ -294,6 +296,14 @@
 
 .deleteBtn:hover {
     background-color: rgba(239, 68, 68, 0.2);
+}
+
+.exportBtn {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .tableContainer {
@@ -490,4 +500,279 @@
     margin-top: 2rem;
     padding-top: 1.5rem;
     border-top: 1px solid var(--color-border);
+}
+
+/* ===== ANALYTICS VIEW STYLING ===== */
+
+.analyticsSection {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.analyticsFilterCard {
+    padding: 1.5rem;
+}
+
+.filterRow {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.filterLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+}
+
+.filterBtnGroup {
+    display: flex;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 4px;
+    gap: 2px;
+}
+
+.filterBtn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.filterBtn:hover {
+    color: var(--color-text-primary);
+    background: var(--color-bg-tertiary);
+}
+
+.filterBtnActive {
+    background: var(--color-primary) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.customDateRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dateSeparator {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.filterSelect {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filterSelect:hover {
+    border-color: var(--color-primary);
+}
+
+.dateRangeInput {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.dateRangeInput:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+/* Analytics KPI Row */
+.analyticsKpiRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+}
+
+.analyticsKpiCard {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analyticsKpiCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.analyticsKpiIcon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.analyticsKpiInfo {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.analyticsKpiLabel {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    margin: 0 0 0.25rem 0;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.analyticsKpiValue {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.analyticsKpiSubtext {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    margin-top: 4px;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+/* Yearly Breakdown */
+.yearlyBreakdownCard {
+    padding: 1.5rem;
+}
+
+.yearlyHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.yearlySubtext {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    margin: 0.35rem 0 0 0;
+    font-weight: 500;
+}
+
+.yearlyGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.monthCard {
+    padding: 1.25rem 1rem;
+    text-align: center;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg-secondary);
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.monthCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--color-border);
+    transition: background 0.25s ease;
+}
+
+.monthCardActive::before {
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.monthCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.monthTitle {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.monthValue {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.monthCardActive .monthValue {
+    color: #10b981;
+}
+
+/* Responsive adjustments for analytics */
+@media (max-width: 768px) {
+    .analyticsKpiRow {
+        grid-template-columns: 1fr;
+    }
+
+    .filterRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filterBtnGroup {
+        flex-wrap: wrap;
+    }
+
+    .yearlyHeader {
+        flex-direction: column;
+    }
+
+    .yearlyGrid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    .customDateRow {
+        flex-wrap: wrap;
+    }
 }
