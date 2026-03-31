@@ -308,7 +308,22 @@ export const getBasicPayments = async (page = 1, limit = 10) => {
         if (!response.ok) throw new Error('Failed to fetch basic payments');
         return await response.json();
     } catch (error) {
-        console.error('Error fetching basic payments:', error);
+        console.error("Error fetching basic payments:", error);
+        return { data: [], pagination: {} };
+    }
+};
+
+export const deleteBasicPayments = async (ids) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/basic`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids }),
+        });
+        if (!response.ok) throw new Error('Failed to delete basic payments');
+        return await response.json();
+    } catch (error) {
+        console.error("Error deleting basic payments:", error);
         throw error;
     }
 };

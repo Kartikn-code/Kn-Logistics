@@ -52,6 +52,60 @@ const verifyPassword = (password, storedPassword) => {
     }
 };
 
+// --- STRICT EXCEL DATE PARSER (Fixes IST UTC shift & DD-MM-YYYY) ---
+const parseExcelDateSecure = (val) => {
+    if (!val || String(val).trim() === '') return null;
+    
+    // 1. Numeric Excel Serial Dates (e.g. 45375)
+    if (typeof val === 'number') {
+        const excelEpoch = Date.UTC(1899, 11, 30); // Use absolute UTC to avoid offset shifting!
+        const jsDate = new Date(excelEpoch + val * 86400000);
+        return jsDate.toISOString().split('T')[0]; // Safe YYYY-MM-DD
+    }
+
+    // 2. Strict String Date Parsing (DD-MM-YYYY, DD/MM/YYYY, etc.)
+    if (typeof val === 'string') {
+        const trimmed = val.trim();
+        const parseParts = (parts) => {
+            if (parts.length === 3) {
+                let p0 = parts[0], p1 = parts[1], p2 = parts[2];
+                let day, month, year;
+
+                // Case: DD-MM-YYYY or MM-DD-YYYY (p2 is 4 digit year)
+                if (p2.length >= 4) {
+                    year = p2;
+                    day = p0;   // Force DD-MM-YYYY format matching
+                    month = p1; 
+                } 
+                // Case: YYYY-MM-DD (p0 is 4 digit year)
+                else if (p0.length >= 4) {
+                    year = p0;
+                    month = p1;
+                    day = p2;
+                } 
+                // Case: DD-MM-YY (e.g. 24-03-26)
+                else {
+                    year = p2.length === 2 ? '20' + p2 : p2;
+                    day = p0;     // Force DD-MM-YYYY format matching
+                    month = p1;
+                }
+                
+                // Return YYYY-MM-DD for database
+                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+            return null;
+        };
+
+        let res = null;
+        if (trimmed.includes('-')) res = parseParts(trimmed.split('-'));
+        else if (trimmed.includes('/')) res = parseParts(trimmed.split('/'));
+        else if (trimmed.includes('.')) res = parseParts(trimmed.split('.'));
+        
+        if (res) return res;
+    }
+    return val;
+};
+
 // POST Login
 router.post('/login', (req, res) => {
     const { username, password } = req.body;
@@ -323,32 +377,7 @@ router.post('/upload-financial', verifyToken, upload.single('file'), (req, res) 
                     const total = parseAmount(normRow['TOTAL']) || (freight + multiPoint + loading + unloading + halt);
 
                     // Handle Excel date serial numbers
-                    const parseExcelDate = (val) => {
-                        if (!val || String(val).trim() === '') return null;
-                        if (typeof val === 'number') {
-                            const excelEpoch = new Date(1899, 11, 30);
-                            const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
-                            return jsDate.toISOString().split('T')[0];
-                        }
-                        if (typeof val === 'string') {
-                            const trimmed = val.trim();
-                            const parts = trimmed.split('.');
-                            if (parts.length === 3) {
-                                let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
-                                return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                            }
-                            const slashParts = trimmed.split('/');
-                            if (slashParts.length === 3) {
-                                let year = slashParts[2].length === 2 ? '20' + slashParts[2] : slashParts[2];
-                                return `${year}-${slashParts[1].padStart(2, '0')}-${slashParts[0].padStart(2, '0')}`;
-                            }
-                            const dashParts = trimmed.split('-');
-                            if (dashParts.length === 3 && dashParts[2].length === 4) {
-                                return `${dashParts[2]}-${dashParts[1]}-${dashParts[0]}`;
-                            }
-                        }
-                        return val;
-                    };
+                    const parseExcelDate = parseExcelDateSecure;
 
                     dispatchDate = parseExcelDate(dispatchDate) || null;
                     dateOfArrival = parseExcelDate(dateOfArrival) || null;
@@ -874,6 +903,23 @@ router.get('/payments/basic', verifyToken, (req, res) => {
     });
 });
 
+// DELETE Specific Basic Payments
+router.delete('/payments/basic', verifyToken, (req, res) => {
+    const { ids } = req.body;
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'No IDs provided for deletion' });
+    }
+
+    const placeholders = ids.map(() => '?').join(',');
+    const sql = `DELETE FROM basic_payments WHERE id IN (${placeholders})`;
+
+    db.run(sql, ids, function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: `Successfully deleted basic payment(s)` });
+    });
+});
+
 // DELETE All Basic Payments
 router.delete('/payments/basic/all', verifyToken, (req, res) => {
     if (req.userRole !== 'admin') {
@@ -921,32 +967,7 @@ router.post('/payments/upload-basic', verifyToken, upload.single('file'), (req, 
                     const payAmount = parseAmount(normRow['PAYMENT RECEIVED AMOUNT'] || normRow['AMOUNT']);
 
                     // Handle Excel dates robustly for Postgres
-                    const parseExcelDate = (val) => {
-                        if (!val || String(val).trim() === '') return null;
-                        if (typeof val === 'number') {
-                            const excelEpoch = new Date(1899, 11, 30);
-                            const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
-                            return jsDate.toISOString().split('T')[0];
-                        }
-                        if (typeof val === 'string') {
-                            const trimmed = val.trim();
-                            const parts = trimmed.split('.');
-                            if (parts.length === 3) {
-                                let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
-                                return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                            }
-                            const slashParts = trimmed.split('/');
-                            if (slashParts.length === 3) {
-                                let year = slashParts[2].length === 2 ? '20' + slashParts[2] : slashParts[2];
-                                return `${year}-${slashParts[1].padStart(2, '0')}-${slashParts[0].padStart(2, '0')}`;
-                            }
-                            const dashParts = trimmed.split('-');
-                            if (dashParts.length === 3 && dashParts[2].length === 4) {
-                                return `${dashParts[2]}-${dashParts[1]}-${dashParts[0]}`;
-                            }
-                        }
-                        return val;
-                    };
+                    const parseExcelDate = parseExcelDateSecure;
                     
                     payDate = parseExcelDate(payDate);
 
@@ -1082,32 +1103,7 @@ router.post('/payments/upload-invoice', verifyToken, upload.single('file'), (req
                     let payDate = normRow['PAYMENT DATE'] || normRow['PAYMENTDATE'] || normRow['DATE'] || null;
 
                     // Handle Excel dates robustly for Postgres
-                    const parseExcelDate = (val) => {
-                        if (!val || String(val).trim() === '') return null;
-                        if (typeof val === 'number') {
-                            const excelEpoch = new Date(1899, 11, 30);
-                            const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
-                            return jsDate.toISOString().split('T')[0];
-                        }
-                        if (typeof val === 'string') {
-                            const trimmed = val.trim();
-                            const parts = trimmed.split('.');
-                            if (parts.length === 3) {
-                                let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
-                                return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                            }
-                            const slashParts = trimmed.split('/');
-                            if (slashParts.length === 3) {
-                                let year = slashParts[2].length === 2 ? '20' + slashParts[2] : slashParts[2];
-                                return `${year}-${slashParts[1].padStart(2, '0')}-${slashParts[0].padStart(2, '0')}`;
-                            }
-                            const dashParts = trimmed.split('-');
-                            if (dashParts.length === 3 && dashParts[2].length === 4) {
-                                return `${dashParts[2]}-${dashParts[1]}-${dashParts[0]}`;
-                            }
-                        }
-                        return val;
-                    };
+                    const parseExcelDate = parseExcelDateSecure;
                     
                     payDate = parseExcelDate(payDate);
 
