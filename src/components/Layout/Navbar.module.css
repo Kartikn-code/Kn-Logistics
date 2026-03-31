@@ -46,6 +46,29 @@
     color: var(--color-accent);
 }
 
+.logoText {
+    font-size: 1.8rem;
+    font-family: "Boldonse", system-ui;
+    font-weight: 400;
+    font-style: normal;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.2));
+}
+
+.scrolled .logoText {
+    background: linear-gradient(135deg, #ffffff, var(--color-primary-glow));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
 .desktopMenu {
     display: flex;
     gap: var(--spacing-lg);

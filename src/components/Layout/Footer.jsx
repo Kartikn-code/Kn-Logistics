@@ -1,5 +1,5 @@
 import styles from './Footer.module.css';
-import { Truck } from 'lucide-react';
+import { Container } from 'lucide-react';
 
 const Footer = () => {
     return (
@@ -7,8 +7,8 @@ const Footer = () => {
             <div className={styles.container}>
                 <div className={styles.brand}>
                     <div className={styles.logo}>
-                        <Truck size={24} />
-                        <span>KN Logistics</span>
+                        <Container size={28} className={styles.logoIcon} strokeWidth={2.5} />
+                        <span className={styles.logoText}>KN Logistics</span>
                     </div>
                     <p className={styles.tagline}>Reliable Inward & Outward Transport Across Tamil Nadu</p>
                 </div>

@@ -30,6 +30,23 @@
     font-size: 1.25rem;
 }
 
+.logoIcon {
+    color: var(--color-accent);
+}
+
+.logoText {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+}
+
 .tagline {
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.875rem;

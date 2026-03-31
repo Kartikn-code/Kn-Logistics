@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Truck, Menu, X, Sun, Moon } from 'lucide-react';
+import { Container, Menu, X, Sun, Moon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import styles from './Navbar.module.css';
 import clsx from 'clsx';
@@ -44,7 +44,7 @@ const Navbar = () => {
         <nav className={clsx(styles.navbar, scrolled && styles.scrolled)}>
             <div className={styles.container}>
                 <div className={styles.logo}>
-                    <Truck className={styles.logoIcon} size={28} />
+                    <Container className={styles.logoIcon} size={32} strokeWidth={2.5} />
                     <span className={styles.logoText}>KN Logistics</span>
                 </div>
 
