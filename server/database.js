@@ -1,4 +1,9 @@
-import sqlite3 from 'sqlite3';
+let sqlite3;
+try {
+    sqlite3 = (await import('sqlite3')).default;
+} catch (e) {
+    // sqlite3 not available (e.g., on Vercel) — PostgreSQL will be used instead
+}
 import pg from 'pg';
 import path from 'path';
 import { fileURLToPath } from 'url';
