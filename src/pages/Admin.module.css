@@ -5,7 +5,7 @@
     /* Accounts for navbar */
     background-color: #F8F9FA;
     min-height: 100vh;
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: inherit;
     color: #111;
     padding-bottom: 3rem;
     overflow-x: hidden;
@@ -194,7 +194,7 @@
 .statLabel {
     font-size: 0.75rem;
     color: #9CA3AF;
-    margin-bottom: 0.5rem;
+    font-weight: 700;
 }
 
 .statValue {

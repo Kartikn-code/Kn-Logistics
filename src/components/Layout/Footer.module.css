@@ -1,8 +1,12 @@
 .footer {
     background-color: var(--color-bg-secondary);
-    color: var(--color-text-primary);
+    color: #000000;
     padding: var(--spacing-2xl) 0;
     margin-top: auto;
+}
+
+:global([data-theme="dark"]) .footer {
+    color: #ffffff;
 }
 
 .container {
@@ -36,7 +40,9 @@
 
 .logoText {
     font-size: 1.5rem;
-    font-weight: 900;
+    font-family: "Boldonse";
+    font-weight: 400;
+    font-style: normal;
     letter-spacing: -0.5px;
     background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
     -webkit-background-clip: text;
@@ -48,13 +54,22 @@
 }
 
 .tagline {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(0, 0, 0, 0.7);
     font-size: 0.875rem;
 }
 
 .links {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.85); /* Increased opacity */
     font-size: 0.875rem;
+    font-weight: 700; /* Increased boldness */
+}
+
+:global([data-theme="dark"]) .tagline {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+:global([data-theme="dark"]) .links {
+    color: rgba(255, 255, 255, 0.85); /* Increased opacity */
 }
 
 @media (max-width: 768px) {

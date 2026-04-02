@@ -65,8 +65,7 @@
   --sidebar-collapsed-width: 80px;
   --container-max-width: 1400px;
 
-  /* Typography */
-  --font-primary: 'Quicksand', system-ui, -apple-system, sans-serif;
+  --font-primary: 'Poppins', system-ui, -apple-system, sans-serif;
 
   /* Spacing */
   --spacing-xs: 0.25rem;
