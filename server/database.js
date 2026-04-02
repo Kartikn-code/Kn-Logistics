@@ -282,6 +282,18 @@ const createTables = async () => {
         `);
 
         await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS expenses (
+                id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+                expenseDate DATE NOT NULL,
+                expenseType VARCHAR(100) NOT NULL,
+                vehicleNo VARCHAR(100),
+                amount DECIMAL(15, 2) NOT NULL,
+                description TEXT,
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await dbWrapper.run(`
             CREATE TABLE IF NOT EXISTS unsaved_records (
                 id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
                 fileName VARCHAR(255),
@@ -294,6 +306,8 @@ const createTables = async () => {
         // Create indexes for better query performance
         await dbWrapper.run(`CREATE INDEX IF NOT EXISTS idx_dispatch_date ON dispatch_records(dispatchDate)`);
         await dbWrapper.run(`CREATE INDEX IF NOT EXISTS idx_truck_no ON dispatch_records(truckNo)`);
+        await dbWrapper.run(`CREATE INDEX IF NOT EXISTS idx_expense_date ON expenses(expenseDate)`);
+        await dbWrapper.run(`CREATE INDEX IF NOT EXISTS idx_expense_truck ON expenses(vehicleNo)`);
 
 
         await dbWrapper.run(`

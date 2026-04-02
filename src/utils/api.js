@@ -463,3 +463,101 @@ export const getPaymentYearlyBreakdown = async (year) => {
         return [];
     }
 };
+
+// --- EXPENSES API ---
+
+export const getExpenses = async (page = 1, limit = 10, filters = {}) => {
+    try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', page);
+        queryParams.append('limit', limit);
+        if (filters.truckNo) queryParams.append('truckNo', filters.truckNo);
+        if (filters.type) queryParams.append('type', filters.type);
+        if (filters.month) queryParams.append('month', filters.month);
+        if (filters.year) queryParams.append('year', filters.year);
+
+        const response = await fetchWithAuth(`${API_URL}/payments/expenses?${queryParams.toString()}`);
+        if (!response.ok) throw new Error('Failed to fetch expenses');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching expenses:', error);
+        return { data: [], pagination: {} };
+    }
+};
+
+export const uploadExpenses = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/upload-expenses`, {
+            method: 'POST',
+            body: formData,
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error uploading expenses:', error);
+        throw error;
+    }
+};
+
+export const deleteExpenses = async (ids, all = false) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/expenses`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids, all }),
+        });
+        if (!response.ok) throw new Error('Failed to delete expenses');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting expenses:', error);
+        throw error;
+    }
+};
+
+export const getExpenseAnalytics = async (filters = {}) => {
+    try {
+        const queryParams = new URLSearchParams();
+        if (filters.truckNo) queryParams.append('truckNo', filters.truckNo);
+        if (filters.month) queryParams.append('month', filters.month);
+        if (filters.year) queryParams.append('year', filters.year);
+
+        const response = await fetchWithAuth(`${API_URL}/payments/expense-analytics?${queryParams.toString()}`);
+        if (!response.ok) throw new Error('Failed to fetch expense analytics');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching expense analytics:', error);
+        return { totalExpense: 0, transactionCount: 0, breakdown: [] };
+    }
+};
+
+export const getExpenseYearlyBreakdown = async (year, truckNo = '') => {
+    try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('year', year);
+        if (truckNo) queryParams.append('truckNo', truckNo);
+
+        const response = await fetchWithAuth(`${API_URL}/payments/expense-yearly-breakdown?${queryParams.toString()}`);
+        if (!response.ok) throw new Error('Failed to fetch yearly expense breakdown');
+        const result = await response.json();
+        return result.data || [];
+    } catch (error) {
+        console.error('Error fetching yearly expense breakdown:', error);
+        return [];
+    }
+};
+
+export const createExpense = async (expenseData) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/payments/expenses`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(expenseData),
+        });
+        if (!response.ok) throw new Error('Failed to record expense');
+        return await response.json();
+    } catch (error) {
+        console.error('Error creating expense:', error);
+        throw error;
+    }
+};

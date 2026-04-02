@@ -54,27 +54,35 @@ const verifyPassword = (password, storedPassword) => {
 
 // --- STRICT EXCEL DATE PARSER (Fixes IST UTC shift & DD-MM-YYYY) ---
 const parseExcelDateSecure = (val) => {
-    if (!val || String(val).trim() === '') return null;
+    if (val === null || val === undefined || String(val).trim() === '') return null;
+
+    // 0. Handle JavaScript Date objects (XLSX may return these with cellDates:true)
+    if (val instanceof Date) {
+        const y = val.getUTCFullYear();
+        const m = String(val.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(val.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
     
     // 1. Numeric Excel Serial Dates (e.g. 45375)
     if (typeof val === 'number') {
         const excelEpoch = Date.UTC(1899, 11, 30); // Use absolute UTC to avoid offset shifting!
-        const jsDate = new Date(excelEpoch + val * 86400000);
+        const jsDate = new Date(excelEpoch + Math.round(val) * 86400000); // Math.round to strip time fractions
         return jsDate.toISOString().split('T')[0]; // Safe YYYY-MM-DD
     }
 
-    // 2. Strict String Date Parsing (DD-MM-YYYY, DD/MM/YYYY, etc.)
+    // 2. Strict String Date Parsing (DD/MM/YYYY is the expected input format)
     if (typeof val === 'string') {
         const trimmed = val.trim();
         const parseParts = (parts) => {
             if (parts.length === 3) {
-                let p0 = parts[0], p1 = parts[1], p2 = parts[2];
+                let p0 = parts[0].trim(), p1 = parts[1].trim(), p2 = parts[2].trim();
                 let day, month, year;
 
-                // Case: DD-MM-YYYY or MM-DD-YYYY (p2 is 4 digit year)
+                // Case: DD-MM-YYYY or DD/MM/YYYY (p2 is 4 digit year)
                 if (p2.length >= 4) {
                     year = p2;
-                    day = p0;   // Force DD-MM-YYYY format matching
+                    day = p0;   // Strictly DD/MM/YYYY
                     month = p1; 
                 } 
                 // Case: YYYY-MM-DD (p0 is 4 digit year)
@@ -86,24 +94,28 @@ const parseExcelDateSecure = (val) => {
                 // Case: DD-MM-YY (e.g. 24-03-26)
                 else {
                     year = p2.length === 2 ? '20' + p2 : p2;
-                    day = p0;     // Force DD-MM-YYYY format matching
+                    day = p0;     // Strictly DD/MM/YY
                     month = p1;
                 }
                 
+                // Validate ranges
+                const yNum = parseInt(year), mNum = parseInt(month), dNum = parseInt(day);
+                if (mNum < 1 || mNum > 12 || dNum < 1 || dNum > 31 || yNum < 1900 || yNum > 2100) return null;
+
                 // Return YYYY-MM-DD for database
-                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             }
             return null;
         };
 
         let res = null;
-        if (trimmed.includes('-')) res = parseParts(trimmed.split('-'));
-        else if (trimmed.includes('/')) res = parseParts(trimmed.split('/'));
+        if (trimmed.includes('/')) res = parseParts(trimmed.split('/'));
+        else if (trimmed.includes('-')) res = parseParts(trimmed.split('-'));
         else if (trimmed.includes('.')) res = parseParts(trimmed.split('.'));
         
         if (res) return res;
     }
-    return val;
+    return null; // Return null instead of raw value for safety
 };
 
 // POST Login
@@ -946,61 +958,87 @@ router.post('/payments/upload-basic', verifyToken, upload.single('file'), (req, 
         let completed = 0, errors = 0, skipped = 0;
 
         const processRows = async () => {
-             const batchSize = 25;
-             for (let i = 0; i < rows.length; i += batchSize) {
-                 const batch = rows.slice(i, i + batchSize);
-                 await Promise.all(batch.map(async (row) => {
-                    const normRow = {};
-                    for (let key in row) {
-                        const cleanKey = key.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
-                        normRow[cleanKey] = row[key];
+            // Step 1: Parse all rows first and collect unique entries
+            const parsedEntries = [];
+            const seenInFile = new Set(); // Track duplicates within the same file
+
+            for (const row of rows) {
+                const normRow = {};
+                for (let key in row) {
+                    const cleanKey = key.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+                    normRow[cleanKey] = row[key];
+                }
+
+                const parseAmount = (val) => {
+                    if (val === undefined || val === null || val === '') return 0;
+                    if (typeof val === 'number') return val;
+                    const cleaned = String(val).replace(/[^0-9.-]/g, '');
+                    return parseFloat(cleaned) || 0;
+                };
+
+                let payDate = normRow['PAYMENT RECEIVED DATE'] || normRow['DATE'] || null;
+                const payAmount = parseAmount(normRow['PAYMENT RECEIVED AMOUNT'] || normRow['AMOUNT']);
+
+                // Parse the date strictly (handles DD/MM/YYYY, Excel serial numbers, Date objects)
+                payDate = parseExcelDateSecure(payDate);
+
+                if (payAmount > 0 && payDate) {
+                    const key = `${payDate}|${payAmount}`;
+                    if (seenInFile.has(key)) {
+                        skipped++; // Duplicate within the same file
+                        continue;
                     }
+                    seenInFile.add(key);
+                    parsedEntries.push({ payDate, payAmount });
+                }
+            }
 
-                    const parseAmount = (val) => {
-                        if (val === undefined || val === null || val === '') return 0;
-                        if (typeof val === 'number') return val;
-                        const cleaned = String(val).replace(/[^0-9.-]/g, '');
-                        return parseFloat(cleaned) || 0;
-                    };
+            // Step 2: Fetch ALL existing records from DB for comparison
+            const existingRecords = await new Promise((resolve) => {
+                db.all('SELECT paymentDate, paymentAmount FROM basic_payments', [], (err, rows) => {
+                    resolve(rows || []);
+                });
+            });
 
-                    let payDate = normRow['PAYMENT RECEIVED DATE'] || normRow['DATE'] || null;
-                    const payAmount = parseAmount(normRow['PAYMENT RECEIVED AMOUNT'] || normRow['AMOUNT']);
+            // Build a Set of existing date|amount keys for O(1) lookup
+            const existingSet = new Set();
+            for (const rec of existingRecords) {
+                // Normalize the stored date to YYYY-MM-DD for comparison
+                const normalizedDate = rec.paymentDate ? String(rec.paymentDate).split('T')[0].trim() : '';
+                existingSet.add(`${normalizedDate}|${rec.paymentAmount}`);
+            }
 
-                    // Handle Excel dates robustly for Postgres
-                    const parseExcelDate = parseExcelDateSecure;
-                    
-                    payDate = parseExcelDate(payDate);
+            // Step 3: Insert only truly new records sequentially (no race conditions)
+            for (const entry of parsedEntries) {
+                const key = `${entry.payDate}|${entry.payAmount}`;
+                if (existingSet.has(key)) {
+                    skipped++;
+                    continue;
+                }
 
-                    if (payAmount > 0) {
-                        try {
-                            const existing = await new Promise((resolve) => {
-                                db.get('SELECT id FROM basic_payments WHERE paymentDate = ? AND paymentAmount = ?', [payDate, payAmount], (err, row) => resolve(row));
-                            });
-                            
-                            if (existing) {
-                                skipped++;
-                                await new Promise((resolve) => {
-                                    db.run('INSERT INTO unsaved_records (fileName, recordIdentifier, issueDetails) VALUES (?, ?, ?)',
-                                        [req.file ? req.file.originalname : 'Upload', `Date: ${payDate}, Amount: ${payAmount}`, 'Duplicate Basic Payment found'],
-                                        () => resolve()
-                                    );
-                                });
-                                return;
-                            }
+                try {
+                    await new Promise((resolve, reject) => {
+                        db.run(sql, [entry.payDate, entry.payAmount], (err) => {
+                            if (err) { errors++; reject(err); }
+                            else { completed++; resolve(); }
+                        });
+                    });
+                    // Add to existing set so subsequent entries in this batch don't duplicate
+                    existingSet.add(key);
+                } catch (e) {
+                    // Continue processing remaining rows
+                }
+            }
 
-                            await new Promise((resolve, reject) => {
-                                db.run(sql, [payDate, payAmount], (err) => {
-                                    if (err) { errors++; reject(err); }
-                                    else { completed++; resolve(); }
-                                });
-                            });
-                        } catch (e) {}
-                    }
-                 }));
-             }
-             if (!res.headersSent) res.json({ message: `Processed ${rows.length} rows`, success: completed, failed: errors, skipped });
+            if (!res.headersSent) {
+                const dupMsg = skipped > 0 ? ` (${skipped} duplicates skipped)` : '';
+                res.json({ message: `Processed ${rows.length} rows${dupMsg}`, success: completed, failed: errors, skipped });
+            }
         };
-        processRows().catch(() => { if (!res.headersSent) res.status(500).json({ error: 'Processing error' }); });
+        processRows().catch((err) => { 
+            console.error('Basic payment upload error:', err);
+            if (!res.headersSent) res.status(500).json({ error: 'Processing error' }); 
+        });
     } catch (error) {
         return res.status(500).json({ error: 'Failed to parse Excel file' });
     }
@@ -1264,33 +1302,255 @@ router.get('/payments/analytics-insights', verifyToken, async (req, res) => {
     }
 });
 
-// GET Yearly Breakdown - Monthly View (Basic Payments Only)
-router.get('/payments/yearly-breakdown', verifyToken, async (req, res) => {
-    const year = req.query.year || new Date().getFullYear().toString();
-    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
-    const yearExt = isPg ? "TO_CHAR(paymentDate, 'YYYY')" : "strftime('%Y', paymentDate)";
-    const monthExt = isPg ? "TO_CHAR(paymentDate, 'MM')" : "strftime('%m', paymentDate)";
+// --- EXPENSES ROUTES ---
+
+// UPLOAD Expenses Excel
+router.post('/payments/upload-expenses', verifyToken, upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     try {
-        const basicSql = `SELECT ${monthExt} as month, SUM(paymentAmount) as total FROM basic_payments WHERE ${yearExt} = ? GROUP BY ${monthExt}`;
-        const basicRows = await new Promise((resolve) => db.all(basicSql, [year], (err, rows) => resolve(rows || [])));
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        if (rows.length === 0) return res.json({ message: 'No data found in file', success: 0, failed: 0 });
+
+        const sql = `INSERT INTO expenses (expenseDate, expenseType, vehicleNo, amount, description) VALUES (?, ?, ?, ?, ?)`;
+        let completed = 0, errors = 0, skipped = 0;
+
+        const processRows = async () => {
+             const batchSize = 25;
+             for (let i = 0; i < rows.length; i += batchSize) {
+                 const batch = rows.slice(i, i + batchSize);
+                 await Promise.all(batch.map(async (row) => {
+                    const normRow = {};
+                    for (let key in row) {
+                        const cleanKey = key.replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+                        normRow[cleanKey] = row[key];
+                    }
+
+                    const parseAmount = (val) => {
+                        if (val === undefined || val === null || val === '') return 0;
+                        if (typeof val === 'number') return val;
+                        const cleaned = String(val).replace(/[^0-9.-]/g, '');
+                        return parseFloat(cleaned) || 0;
+                    };
+
+                    let expDate = normRow['DATE'] || normRow['EXPENSE DATE'] || normRow['EXPENSEDATE'] || null;
+                    const type = normRow['TYPE'] || normRow['EXPENSE TYPE'] || normRow['EXPENSETYPE'] || '';
+                    const vehicleNo = normRow['VEHICLE NO'] || normRow['VEHICLENO'] || normRow['TRUCK NO'] || normRow['TRUCKNO'] || '';
+                    const amount = parseAmount(normRow['AMOUNT'] || normRow['COST']);
+                    const description = normRow['DESCRIPTION'] || normRow['REMARKS'] || '';
+
+                    // Robust Date Parsing
+                    expDate = parseExcelDateSecure(expDate);
+
+                    if (expDate && type && amount > 0) {
+                        try {
+                            await new Promise((resolve, reject) => {
+                                db.run(sql, [expDate, type, vehicleNo, amount, description], (err) => {
+                                    if (err) { errors++; reject(err); }
+                                    else { completed++; resolve(); }
+                                });
+                            });
+                        } catch (e) { errors++; }
+                    } else {
+                        skipped++;
+                    }
+                 }));
+             }
+             if (!res.headersSent) {
+                 res.json({ message: `Saved ${completed} expense records.`, success: completed, failed: errors, skipped: skipped });
+             }
+        };
+        processRows().catch(() => { if (!res.headersSent) res.status(500).json({ error: 'Processing error' }); });
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to parse Excel file' });
+    }
+});
+
+// GET All Expenses (Paginated and Filtered)
+router.get('/payments/expenses', verifyToken, (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+    
+    // Filters
+    const { truckNo, type, month, year } = req.query;
+
+    let baseSql = `FROM expenses`;
+    let conditions = [];
+    let params = [];
+
+    if (truckNo) {
+        conditions.push(`vehicleNo LIKE ?`);
+        params.push(`%${truckNo}%`);
+    }
+    if (type) {
+        conditions.push(`expenseType = ?`);
+        params.push(type);
+    }
+    
+    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+    if (year) {
+        const yearExt = isPg ? "TO_CHAR(expenseDate, 'YYYY')" : "strftime('%Y', expenseDate)";
+        conditions.push(`${yearExt} = ?`);
+        params.push(year);
+    }
+    if (month) {
+        const monthExt = isPg ? "TO_CHAR(expenseDate, 'MM')" : "strftime('%m', expenseDate)";
+        conditions.push(`${monthExt} = ?`);
+        params.push(month.toString().padStart(2, '0'));
+    }
+
+    const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
+    
+    const countSql = `SELECT COUNT(*) as total ${baseSql} ${whereClause}`;
+    const dataSql = `SELECT * ${baseSql} ${whereClause} ORDER BY expenseDate DESC, id DESC LIMIT ? OFFSET ?`;
+
+    db.get(countSql, params, (err, countRow) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        db.all(dataSql, [...params, limit, offset], (err, rows) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            res.json({
+                data: rows,
+                pagination: {
+                    total: countRow.total,
+                    page,
+                    limit,
+                    totalPages: Math.ceil((countRow.total || 0) / limit)
+                }
+            });
+        });
+    });
+});
+
+// DELETE Expenses
+router.delete('/payments/expenses', verifyToken, (req, res) => {
+    const { ids, all } = req.body;
+    
+    if (all === true) {
+        if (req.userRole !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+        db.run(`DELETE FROM expenses`, [], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: `Successfully deleted all expense records` });
+        });
+        return;
+    }
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'No IDs provided for deletion' });
+    }
+
+    const placeholders = ids.map(() => '?').join(',');
+    const sql = `DELETE FROM expenses WHERE id IN (${placeholders})`;
+
+    db.run(sql, ids, function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: `Successfully deleted ${this.changes} expense record(s)` });
+    });
+});
+
+// GET Expense Analytics Insights
+router.get('/payments/expense-analytics', verifyToken, async (req, res) => {
+    const { truckNo, month, year } = req.query;
+    
+    let conditions = [];
+    let params = [];
+    
+    if (truckNo) {
+        conditions.push(`vehicleNo LIKE ?`);
+        params.push(`%${truckNo}%`);
+    }
+    
+    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+    if (year) {
+        const yearExt = isPg ? "TO_CHAR(expenseDate, 'YYYY')" : "strftime('%Y', expenseDate)";
+        conditions.push(`${yearExt} = ?`);
+        params.push(year);
+    }
+    if (month) {
+        const monthExt = isPg ? "TO_CHAR(expenseDate, 'MM')" : "strftime('%m', expenseDate)";
+        conditions.push(`${monthExt} = ?`);
+        params.push(month.toString().padStart(2, '0'));
+    }
+
+    const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
+
+    try {
+        // Total Summary
+        const totalSql = `SELECT SUM(amount) as total, COUNT(*) as count FROM expenses ${whereClause}`;
+        const totalResult = await new Promise((resolve) => db.get(totalSql, params, (err, row) => resolve(row)));
+
+        // Type Breakdown
+        const typeSql = `SELECT expenseType, SUM(amount) as total FROM expenses ${whereClause} GROUP BY expenseType`;
+        const typeRows = await new Promise((resolve) => db.all(typeSql, params, (err, rows) => resolve(rows || [])));
+
+        res.json({
+            totalExpense: totalResult?.total || 0,
+            transactionCount: totalResult?.count || 0,
+            breakdown: typeRows
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch expense analytics' });
+    }
+});
+
+// GET Expense Yearly Breakdown (Monthly View)
+router.get('/payments/expense-yearly-breakdown', verifyToken, async (req, res) => {
+    const year = req.query.year || new Date().getFullYear().toString();
+    const { truckNo } = req.query;
+    
+    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+    const yearExt = isPg ? "TO_CHAR(expenseDate, 'YYYY')" : "strftime('%Y', expenseDate)";
+    const monthExt = isPg ? "TO_CHAR(expenseDate, 'MM')" : "strftime('%m', expenseDate)";
+
+    let condition = `WHERE ${yearExt} = ?`;
+    let params = [year];
+    
+    if (truckNo) {
+        condition += ` AND vehicleNo LIKE ?`;
+        params.push(`%${truckNo}%`);
+    }
+
+    try {
+        const sql = `SELECT ${monthExt} as month, SUM(amount) as total FROM expenses ${condition} GROUP BY ${monthExt}`;
+        const rows = await new Promise((resolve) => db.all(sql, params, (err, rows) => resolve(rows || [])));
 
         const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
         const fullData = months.map((m, i) => {
-            const found = basicRows.find(r => r.month === m);
+            const found = rows.find(r => r.month === m);
             return {
                 month: m,
                 monthName: monthNames[i],
-                totalReceived: found ? found.total : 0
+                totalExpense: found ? found.total : 0
             };
         });
 
         res.json({ data: fullData });
     } catch (err) {
-        res.status(500).json({ error: 'Failed to fetch yearly breakdown' });
+        res.status(500).json({ error: 'Failed to fetch yearly expense breakdown' });
     }
+});
+
+// CREATE Expense (Manual Entry)
+router.post('/payments/expenses', verifyToken, (req, res) => {
+    const { expenseDate, expenseType, vehicleNo, amount, description } = req.body;
+
+    if (!expenseDate || !expenseType || !amount) {
+        return res.status(400).json({ error: 'Date, Type, and Amount are required' });
+    }
+
+    const sql = `INSERT INTO expenses (expenseDate, expenseType, vehicleNo, amount, description) VALUES (?, ?, ?, ?, ?)`;
+
+    db.run(sql, [expenseDate, expenseType, vehicleNo || null, amount, description || ''], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Expense recorded successfully', id: this.lastID });
+    });
 });
 
 // GET Unsaved Records

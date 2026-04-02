@@ -8,7 +8,7 @@ import { getBasicPayments, deleteBasicPayments, deleteAllBasicPayments, uploadBa
 import { formatDate } from '../utils/dateFormatter';
 
 const Payments = () => {
-    const [activeTab, setActiveTab] = useState('basic'); // 'basic', 'invoice', or 'analytics'
+    const [activeTab, setActiveTab] = useState('basic'); // 'basic', 'invoice', 'expenses', or 'analytics'
     const [loading, setLoading] = useState(false);
 
     // Determine admin status
@@ -27,6 +27,17 @@ const Payments = () => {
     const [basicPayments, setBasicPayments] = useState([]);
     const [basicPage, setBasicPage] = useState(1);
     const [basicTotalPages, setBasicTotalPages] = useState(1);
+
+    // Expenses State
+    const [expenses, setExpenses] = useState([]);
+    const [expensePage, setExpensePage] = useState(1);
+    const [expenseTotalPages, setExpenseTotalPages] = useState(1);
+    const [expenseFilters, setExpenseFilters] = useState({ truckNo: '', type: '', month: '', year: new Date().getFullYear().toString() });
+    const [expenseAnalytics, setExpenseAnalytics] = useState({ totalExpense: 0, transactionCount: 0, breakdown: [] });
+    const [expenseYearlyData, setExpenseYearlyData] = useState([]);
+    const [selectedExpenseIds, setSelectedExpenseIds] = useState([]);
+    const [isAddingExpense, setIsAddingExpense] = useState(false);
+    const [newExpense, setNewExpense] = useState({ expenseDate: new Date().toISOString().split('T')[0], expenseType: 'Diesel cost', vehicleNo: '', amount: '', description: '' });
 
     // Invoice State
     const [invoiceStats, setInvoiceStats] = useState({
@@ -64,6 +75,15 @@ const Payments = () => {
             setInvoices(invData.data || []);
             setInvoiceTotalPages(invData.pagination?.totalPages || 1);
             setSelectedInvoiceIds([]);
+        } else if (activeTab === 'expenses') {
+            const data = await getExpenses(expensePage, 10, expenseFilters);
+            setExpenses(data.data || []);
+            setExpenseTotalPages(data.pagination?.totalPages || 1);
+            const analytics = await getExpenseAnalytics(expenseFilters);
+            setExpenseAnalytics(analytics);
+            const yearly = await getExpenseYearlyBreakdown(expenseFilters.year, expenseFilters.truckNo);
+            setExpenseYearlyData(yearly);
+            setSelectedExpenseIds([]);
         } else if (activeTab === 'analytics') {
             fetchAnalyticsData();
             fetchYearlyBreakdown();
@@ -111,7 +131,7 @@ const Payments = () => {
         fetchData();
         setUploadStatus(null);
         setFile(null);
-    }, [activeTab, basicPage, invoicePage, analyticsFilter, customStartDate, customEndDate, yearlyBreakdownYear]);
+    }, [activeTab, basicPage, invoicePage, expensePage, expenseFilters, analyticsFilter, customStartDate, customEndDate, yearlyBreakdownYear]);
 
     // --- Upload ---
     const handleFileChange = (e) => {
@@ -125,12 +145,14 @@ const Payments = () => {
             let result;
             if (activeTab === 'basic') {
                 result = await uploadBasicPayments(file);
-            } else {
+            } else if (activeTab === 'invoice') {
                 result = await uploadInvoicePayments(file);
+            } else if (activeTab === 'expenses') {
+                result = await uploadExpenses(file);
             }
             setUploadStatus({ type: 'success', message: result.message || 'File uploaded successfully!' });
             setFile(null);
-            const input = document.getElementById(activeTab === 'basic' ? 'basicUpload' : 'invoiceUpload');
+            const input = document.getElementById(activeTab + 'Upload');
             if (input) input.value = '';
             fetchData();
         } catch (error) {
@@ -203,6 +225,64 @@ const Payments = () => {
         setSelectedInvoiceIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
     };
 
+    // --- Expense Handlers ---
+    const handleDeleteOneExpense = async (id) => {
+        if (!window.confirm("Delete this expense record?")) return;
+        setLoading(true);
+        try { await deleteExpenses([id]); fetchData(); } catch (error) { alert('Failed to delete expense'); }
+        setLoading(false);
+    };
+
+    const handleBulkDeleteExpenses = async () => {
+        if (!window.confirm(`Delete ${selectedExpenseIds.length} expense records?`)) return;
+        setLoading(true);
+        try { await deleteExpenses(selectedExpenseIds); fetchData(); } catch (error) { alert('Failed to delete expenses'); }
+        setLoading(false);
+    };
+
+    const handleDeleteAllExpenses = async () => {
+        if (!window.confirm('WARNING: Are you sure you want to permanently delete ALL expense records?')) return;
+        setLoading(true);
+        try { await deleteExpenses([], true); fetchData(); } catch (error) { alert('Failed to delete all expenses'); }
+        setLoading(false);
+    };
+
+    const handleSelectAllExpenses = (e) => {
+        if (e.target.checked) setSelectedExpenseIds(expenses.map(ex => ex.id));
+        else setSelectedExpenseIds([]);
+    };
+
+    const handleSelectOneExpense = (id) => {
+        setSelectedExpenseIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+    };
+
+    const handleAddExpense = async (e) => {
+        e.preventDefault();
+        const { expenseType, vehicleNo, amount } = newExpense;
+        
+        // Validation: Vehicle No required for everything except 'Driver cost'
+        if (expenseType !== 'Driver cost' && !vehicleNo) {
+            alert('Vehicle Number is required for ' + expenseType);
+            return;
+        }
+        if (!amount || Number(amount) <= 0) {
+            alert('Please enter a valid amount');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const result = await createExpense(newExpense);
+            alert(result.message || 'Expense recorded');
+            setIsAddingExpense(false);
+            setNewExpense({ expenseDate: new Date().toISOString().split('T')[0], expenseType: 'Diesel cost', vehicleNo: '', amount: '', description: '' });
+            fetchData();
+        } catch (error) {
+            alert(error.message || 'Failed to record expense');
+        }
+        setLoading(false);
+    };
+
     // --- CSV Export ---
     const downloadCSV = (data, filename) => {
         if (!data || data.length === 0) { alert('No data to export.'); return; }
@@ -272,6 +352,9 @@ const Payments = () => {
                         </button>
                         <button className={`${styles.tabBtn} ${activeTab === 'invoice' ? styles.activeTab : ''}`} onClick={() => setActiveTab('invoice')}>
                             <Briefcase size={16} /> Invoice-wise
+                        </button>
+                        <button className={`${styles.tabBtn} ${activeTab === 'expenses' ? styles.activeTab : ''}`} onClick={() => setActiveTab('expenses')}>
+                            <DollarSign size={16} /> Expenses
                         </button>
                         <button className={`${styles.tabBtn} ${activeTab === 'analytics' ? styles.activeTab : ''}`} onClick={() => setActiveTab('analytics')}>
                             <TrendingUp size={16} /> Analytics
@@ -553,8 +636,182 @@ const Payments = () => {
                     </div>
                 </div>
             )}
+            {/* ========== EXPENSES TAB ========== */}
+            {activeTab === 'expenses' && (
+                <div className={styles.contentGrid}>
+                    <div className={styles.mainContent}>
+                        {/* KPI Cards for Expenses */}
+                        <div className={styles.kpiGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                            <Card className={styles.kpiCard}>
+                                <div className={styles.kpiIconWrapper} style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+                                    <DollarSign size={24} style={{ color: '#ef4444' }} />
+                                </div>
+                                <div className={styles.kpiInfo}>
+                                    <p className={styles.kpiLabel}>Total Expenses</p>
+                                    <h3 className={styles.kpiValue}>₹{expenseAnalytics.totalExpense?.toLocaleString('en-IN') || 0}</h3>
+                                </div>
+                            </Card>
+                            <Card className={styles.kpiCard}>
+                                <div className={styles.kpiIconWrapper} style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
+                                    <FileText size={24} style={{ color: '#10b981' }} />
+                                </div>
+                                <div className={styles.kpiInfo}>
+                                    <p className={styles.kpiLabel}>Transactions</p>
+                                    <h3 className={styles.kpiValue}>{expenseAnalytics.transactionCount || 0}</h3>
+                                </div>
+                            </Card>
+                        </div>
 
-            {/* ========== ANALYTICS TAB (Basic Payments Only) ========== */}
+                        {/* Expense Analytics Charts inside tab */}
+                        <Card className={styles.chartCard} style={{ marginBottom: '2rem' }}>
+                            <div className={styles.yearlyHeader}>
+                                <h3 className={styles.chartTitle}>Monthly Expense Trend</h3>
+                                <p className={styles.yearlySubtext}>Current Year: {expenseFilters.year}</p>
+                            </div>
+                            <div style={{ height: '300px', marginTop: '1.5rem' }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={expenseYearlyData} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
+                                        <defs>
+                                            <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                                        <XAxis dataKey="monthName" stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)' }} axisLine={false} tickLine={false} />
+                                        <YAxis stroke="var(--color-text-secondary)" tick={{ fill: 'var(--color-text-secondary)' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : v > 0 ? `₹${(v / 1000).toFixed(0)}k` : '₹0'} />
+                                        <ChartTooltip
+                                            formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Expense']}
+                                            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '8px' }}
+                                        />
+                                        <Area type="monotone" dataKey="totalExpense" stroke="#ef4444" strokeWidth={2.5} fill="url(#colorExpense)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </Card>
+
+                        <Card className={styles.tableCard}>
+                            <div className={styles.tableHeader}>
+                                <div className={styles.filterBar}>
+                                    <div className={styles.filterGroup}>
+                                        <label>Truck No</label>
+                                        <input type="text" placeholder="Search vehicle..." value={expenseFilters.truckNo} onChange={(e) => setExpenseFilters({ ...expenseFilters, truckNo: e.target.value })} />
+                                    </div>
+                                    <div className={styles.filterGroup}>
+                                        <label>Type</label>
+                                        <select value={expenseFilters.type} onChange={(e) => setExpenseFilters({ ...expenseFilters, type: e.target.value })}>
+                                            <option value="">All Types</option>
+                                            <option value="Diesel cost">Diesel cost</option>
+                                            <option value="Maintenance cost">Maintenance cost</option>
+                                            <option value="Veh Due">Veh Due</option>
+                                            <option value="Driver cost">Driver cost</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.filterGroup}>
+                                        <label>Year</label>
+                                        <select value={expenseFilters.year} onChange={(e) => setExpenseFilters({ ...expenseFilters, year: e.target.value })}>
+                                            {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                                    <Button onClick={() => setIsAddingExpense(true)}><DollarSign size={16} /> Add Manual Expense</Button>
+                                    {selectedExpenseIds.length > 0 && (
+                                        <Button variant="danger" onClick={handleBulkDeleteExpenses}>Delete Selected ({selectedExpenseIds.length})</Button>
+                                    )}
+                                    {isAdmin && expenses.length > 0 && (
+                                        <Button variant="danger" onClick={handleDeleteAllExpenses}>Delete All</Button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className={styles.tableContainer}>
+                                <table className={styles.dataTable}>
+                                    <thead>
+                                        <tr>
+                                            <th><input type="checkbox" onChange={handleSelectAllExpenses} checked={selectedExpenseIds.length === expenses.length && expenses.length > 0} /></th>
+                                            <th>Date</th>
+                                            <th>Expense Type</th>
+                                            <th>Vehicle No</th>
+                                            <th>Amount (₹)</th>
+                                            <th>Description</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {expenses.length === 0 ? (
+                                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>No expense records found.</td></tr>
+                                        ) : expenses.map(ex => (
+                                            <tr key={ex.id}>
+                                                <td><input type="checkbox" checked={selectedExpenseIds.includes(ex.id)} onChange={() => handleSelectOneExpense(ex.id)} /></td>
+                                                <td>{formatDate(ex.expenseDate)}</td>
+                                                <td><span className={styles.badge} style={{ background: 'var(--color-bg-secondary)' }}>{ex.expenseType}</span></td>
+                                                <td>{ex.vehicleNo || 'N/A'}</td>
+                                                <td><span style={{ color: '#ef4444', fontWeight: 600 }}>₹{Number(ex.amount || 0).toLocaleString('en-IN')}</span></td>
+                                                <td title={ex.description}>{ex.description || '-'}</td>
+                                                <td>
+                                                    <button className={`${styles.iconBtn} ${styles.dangerIcon}`} onClick={() => handleDeleteOneExpense(ex.id)}><Trash2 size={16} /></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {expenses.length > 0 && (
+                                <div className={styles.pagination}>
+                                    <Button variant="outline" disabled={expensePage === 1} onClick={() => setExpensePage(p => p - 1)}>Previous</Button>
+                                    <span className={styles.pageInfo}>Page {expensePage} of {expenseTotalPages || 1}</span>
+                                    <Button variant="outline" disabled={expensePage >= expenseTotalPages} onClick={() => setExpensePage(p => p + 1)}>Next</Button>
+                                </div>
+                            )}
+                        </Card>
+                    </div>
+
+                    {/* Expenses Sidebar */}
+                    <div className={styles.sidebar}>
+                        <Card className={styles.uploadCard}>
+                            <h3 className={styles.sidebarTitle}>Upload Expenses</h3>
+                            <p className={styles.sidebarDesc}>Columns: Date, Type, Amount, Vehicle No, Description</p>
+                            <div className={styles.colBadges}>
+                                <span>Date</span><span>Type</span><span>Amount</span><span>Vehicle No</span><span>Description</span>
+                            </div>
+                            <div className={styles.uploadBox}>
+                                <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} id="expensesUpload" className={styles.fileInput} />
+                                <label htmlFor="expensesUpload" className={styles.fileLabel}>
+                                    <Upload size={18} />
+                                    {file && activeTab === 'expenses' ? file.name : 'Choose File'}
+                                </label>
+                                <Button onClick={handleUpload} disabled={!file || loading} style={{ width: '100%', marginTop: '1rem' }}>
+                                    {loading ? 'Uploading...' : 'Upload Data'}
+                                </Button>
+                            </div>
+                            {uploadStatus && (
+                                <div className={`${styles.status} ${styles[uploadStatus.type]}`}>{uploadStatus.message}</div>
+                            )}
+                        </Card>
+
+                        <Card className={styles.suggestionsCard}>
+                            <h3 className={styles.sidebarTitle}>Cost Breakdown</h3>
+                            <div className={styles.suggestionBox}>
+                                {expenseAnalytics.breakdown.length === 0 ? <p>No data available</p> : 
+                                 expenseAnalytics.breakdown.map((item, idx) => (
+                                    <div key={idx} style={{ marginBottom: '1rem' }}>
+                                        <div className={styles.suggestionHeader}>
+                                            <span className={styles.suggestionDot} style={{ 
+                                                backgroundColor: item.expenseType === 'Diesel cost' ? '#34d399' : 
+                                                                 item.expenseType === 'Maintenance cost' ? '#fbbf24' : 
+                                                                 item.expenseType === 'Veh Due' ? '#6366f1' : '#ec4899' 
+                                            }}></span>
+                                            <h4>{item.expenseType}</h4>
+                                        </div>
+                                        <p className={styles.suggestionAmount}>₹{Number(item.total || 0).toLocaleString('en-IN')}</p>
+                                    </div>
+                                 ))
+                                }
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+            )}
             {activeTab === 'analytics' && (
                 <div className={styles.analyticsSection}>
                     {/* Time-Based Filter */}
@@ -688,6 +945,55 @@ const Payments = () => {
                                 <div className={styles.modalFooter}>
                                     <Button variant="outline" onClick={() => setIsEditingInvoice(false)} type="button">Cancel</Button>
                                     <Button onClick={handleEditSave} disabled={loading} type="button"><Save size={16} /> Save Changes</Button>
+                                </div>
+                            </form>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* Manual Expense Modal */}
+            {isAddingExpense && (
+                <div className={styles.modalOverlay}>
+                    <Card className={styles.modalContent}>
+                        <div className={styles.modalHeader}>
+                            <h2>Add New Expense</h2>
+                            <button className={styles.closeBtn} onClick={() => setIsAddingExpense(false)}><X size={24} /></button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <form onSubmit={handleAddExpense}>
+                                <div className={styles.formGrid}>
+                                    <div className={styles.formGroup}>
+                                        <label>Date</label>
+                                        <input type="date" required value={newExpense.expenseDate} onChange={(e) => setNewExpense({ ...newExpense, expenseDate: e.target.value })} />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Expense Type</label>
+                                        <select value={newExpense.expenseType} onChange={(e) => setNewExpense({ ...newExpense, expenseType: e.target.value })}>
+                                            <option value="Diesel cost">Diesel cost</option>
+                                            <option value="Maintenance cost">Maintenance cost</option>
+                                            <option value="Veh Due">Veh Due</option>
+                                            <option value="Driver cost">Driver cost</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Vehicle No {newExpense.expenseType !== 'Driver cost' && <span style={{ color: '#ef4444' }}>*</span>}</label>
+                                        <input type="text" placeholder="e.g. MH 01 AB 1234" value={newExpense.vehicleNo} onChange={(e) => setNewExpense({ ...newExpense, vehicleNo: e.target.value.toUpperCase() })} required={newExpense.expenseType !== 'Driver cost'} />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Amount (₹)</label>
+                                        <input type="number" step="0.01" required value={newExpense.amount} onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })} />
+                                    </div>
+                                    <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                        <label>Description</label>
+                                        <textarea placeholder="Optional notes..." value={newExpense.description} onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className={styles.modalFooter}>
+                                    <Button variant="outline" onClick={() => setIsAddingExpense(false)} type="button">Cancel</Button>
+                                    <Button type="submit" disabled={loading}>
+                                        {loading ? 'Saving...' : 'Record Expense'}
+                                    </Button>
                                 </div>
                             </form>
                         </div>
