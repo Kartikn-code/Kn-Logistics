@@ -1302,6 +1302,37 @@ router.get('/payments/analytics-insights', verifyToken, async (req, res) => {
     }
 });
 
+// GET Payment Yearly Breakdown (Monthly View — Basic Payments Only)
+router.get('/payments/yearly-breakdown', verifyToken, async (req, res) => {
+    const year = req.query.year || new Date().getFullYear().toString();
+    
+    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+    const yearExt = isPg ? "TO_CHAR(paymentDate, 'YYYY')" : "strftime('%Y', paymentDate)";
+    const monthExt = isPg ? "TO_CHAR(paymentDate, 'MM')" : "strftime('%m', paymentDate)";
+
+    try {
+        const sql = `SELECT ${monthExt} as month, SUM(paymentAmount) as total FROM basic_payments WHERE ${yearExt} = ? GROUP BY ${monthExt}`;
+        const rows = await new Promise((resolve) => db.all(sql, [year], (err, rows) => resolve(rows || [])));
+
+        const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        const fullData = months.map((m, i) => {
+            const found = rows.find(r => r.month === m);
+            return {
+                month: m,
+                monthName: monthNames[i],
+                totalReceived: found ? found.total : 0
+            };
+        });
+
+        res.json({ data: fullData });
+    } catch (err) {
+        console.error('Yearly breakdown fetch error:', err);
+        res.status(500).json({ error: 'Failed to fetch yearly breakdown' });
+    }
+});
+
 // --- EXPENSES ROUTES ---
 
 // UPLOAD Expenses Excel
