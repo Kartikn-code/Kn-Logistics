@@ -1,0 +1,265 @@
+:root {
+    --invoice-red: #d32f2f;
+    --invoice-yellow: #f4b41a;
+}
+
+.container {
+    padding: var(--spacing-lg);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.5rem;
+    margin-bottom: var(--spacing-xl);
+    position: sticky;
+    top: 80px;
+    z-index: 100;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.toolGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.billSelect {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-bg-primary);
+    padding: 4px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.billSelect select {
+    border: none;
+    background: transparent;
+    padding: 4px;
+    font-weight: 600;
+}
+
+.styleTool {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.styleTool select {
+    padding: 4px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+}
+
+.divider {
+    width: 1px;
+    height: 30px;
+    background: var(--color-border);
+}
+
+.iconBtn {
+    padding: 6px;
+    border-radius: 4px;
+    color: var(--color-text-secondary);
+}
+
+.iconBtn:hover {
+    background: var(--color-bg-tertiary);
+    color: var(--color-primary);
+}
+
+.iconBtn.active {
+    background: var(--color-primary-glow);
+    color: var(--color-primary);
+}
+
+/* Invoice Preview Box */
+.invoicePreview {
+    background: white;
+    color: #000;
+    padding: 40px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.1);
+    min-height: 29.7cm;
+    margin: 0 auto;
+    border: 1px solid #eee;
+    font-family: 'Arial', sans-serif;
+}
+
+.letterhead {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.letterhead h1 {
+    font-size: 3.5rem;
+    margin: 0;
+    color: var(--invoice-red);
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.letterhead p {
+    margin: 4px 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.redText {
+    color: var(--invoice-red);
+    text-transform: uppercase;
+}
+
+.invoiceMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 40px;
+}
+
+.billToBox {
+    border: 1.5px solid #000;
+    padding: 10px;
+    width: 320px;
+    text-align: left;
+}
+
+.billToBox label {
+    display: block;
+    color: var(--invoice-red);
+    font-weight: 900;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.billToBox textarea {
+    width: 100%;
+    border: none;
+    font-weight: 800;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    background: transparent;
+    resize: none;
+    padding: 0;
+    color: #000;
+    outline: none;
+}
+
+.partySelectInput {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 4px 8px;
+    border: 1px dashed #ccc;
+    font-size: 0.8rem;
+    font-family: inherit;
+}
+
+@media print {
+    .partySelectInput {
+        display: none !important;
+    }
+}
+
+.gstLine {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 900;
+}
+
+.invoiceInfo {
+    text-align: right;
+    margin-top: 30px;
+}
+
+.infoRow {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 5px;
+    font-weight: 900;
+    font-size: 1rem;
+    text-transform: uppercase;
+}
+
+.redValue {
+    color: var(--invoice-red);
+}
+
+.invoiceTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.invoiceTable th, .invoiceTable td {
+    border: 1.5px solid #000;
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #000;
+}
+
+.invoiceTable th {
+    background: var(--invoice-yellow);
+    text-transform: uppercase;
+    height: 50px;
+}
+
+.totalSection {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    font-weight: 900;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+}
+
+.signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 80px;
+}
+
+.signBlock {
+    text-align: center;
+    width: 250px;
+}
+
+.signLine {
+    border-top: 1.5px solid #000;
+    margin-top: 50px;
+}
+
+@media print {
+    body {
+        background: white !important;
+    }
+    .container {
+        padding: 0;
+        margin: 0;
+        max-width: none;
+    }
+    .toolbar, :global(nav), :global(footer) {
+        display: none !important;
+    }
+    .invoicePreview {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    :global(.pageWrapper) {
+        padding-top: 0 !important;
+    }
+}

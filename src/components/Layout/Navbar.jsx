@@ -1,15 +1,18 @@
-import { NavLink } from 'react-router-dom';
-import { Container, Menu, X, Sun, Moon } from 'lucide-react';
+import { Container, Sun, Moon, Menu, X, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import styles from './Navbar.module.css';
+import Sidebar from './Sidebar';
 import clsx from 'clsx';
 
-const Navbar = () => {
-    const [isOpen, setIsOpen] = useState(false);
+const Navbar = ({ onToggleSidebar, isCollapsed }) => {
     const [scrolled, setScrolled] = useState(false);
-
-    // Theme State
     const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    
+    const { logout } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -32,68 +35,61 @@ const Navbar = () => {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
 
-    const navLinks = [
-        { name: 'Home', path: '/' },
-        { name: 'Admin', path: '/admin' },
-        { name: 'Services', path: '/services' },
-        { name: 'Payments', path: '/payments' },
-        { name: 'Contact', path: '/contact' },
-    ];
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     return (
         <nav className={clsx(styles.navbar, scrolled && styles.scrolled)}>
             <div className={styles.container}>
-                <div className={styles.logo}>
-                    <Container className={styles.logoIcon} size={32} strokeWidth={2.5} />
-                    <span className={styles.logoText}>KN Logistics</span>
+                <div className={styles.logoArea}>
+                    <button 
+                        className={styles.sidebarToggle} 
+                        onClick={onToggleSidebar}
+                        title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                    >
+                        {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+                    </button>
+                    <div className={styles.logo}>
+                        <Container className={styles.logoIcon} size={28} strokeWidth={2.5} />
+                        <span className={styles.logoText}>KN Logistics</span>
+                    </div>
                 </div>
 
-                {/* Desktop Menu */}
-                <div className={styles.desktopMenu}>
-                    {navLinks.map((link) => (
-                        <NavLink
-                            key={link.path}
-                            to={link.path}
-                            className={({ isActive }) => clsx(styles.navLink, isActive && styles.active)}
-                        >
-                            {link.name}
-                        </NavLink>
-                    ))}
+                <div className={styles.actions}>
                     <button onClick={toggleTheme} className={styles.themeToggleBtn} aria-label="Toggle theme">
                         {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
-                </div>
+                    
+                    <div className={styles.userProfile}>
+                        <div className={styles.avatar}>A</div>
+                        <div className={styles.userInfo}>
+                            <span className={styles.userName}>Admin</span>
+                            <button onClick={handleLogout} className={styles.logoutBtn}>
+                                <LogOut size={14} />
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    {/* Mobile Theme Toggle */}
-                    <button onClick={toggleTheme} className={`${styles.themeToggleBtn} ${styles.mobileOnlyThemeToggle}`} aria-label="Toggle theme">
-                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                    </button>
-
-                    {/* Mobile Menu Toggle */}
-                    <button
-                        className={styles.menuToggle}
-                        onClick={() => setIsOpen(!isOpen)}
-                        aria-label="Toggle menu"
+                    <button 
+                        className={styles.mobileMenuToggle} 
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                     >
-                        {isOpen ? <X size={24} /> : <Menu size={24} />}
+                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
-                </div>
-
-                {/* Mobile Menu */}
-                <div className={clsx(styles.mobileMenu, isOpen && styles.open)}>
-                    {navLinks.map((link) => (
-                        <NavLink
-                            key={link.path}
-                            to={link.path}
-                            className={({ isActive }) => clsx(styles.mobileNavLink, isActive && styles.active)}
-                            onClick={() => setIsOpen(false)}
-                        >
-                            {link.name}
-                        </NavLink>
-                    ))}
                 </div>
             </div>
+
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div className={styles.mobileSidebarOverlay} onClick={() => setIsMobileMenuOpen(false)}>
+                    <div className={styles.mobileSidebarContent} onClick={e => e.stopPropagation()}>
+                        <Sidebar onNavClick={() => setIsMobileMenuOpen(false)} />
+                    </div>
+                </div>
+            )}
         </nav>
     );
 };

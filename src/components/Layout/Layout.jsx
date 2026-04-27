@@ -1,18 +1,24 @@
+import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
-import Footer from './Footer';
+import Sidebar from './Sidebar';
 import ParticleBackground from '../UI/ParticleBackground';
 import styles from './Layout.module.css';
+import clsx from 'clsx';
 
 const Layout = () => {
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
     return (
         <div className={styles.layout}>
             <ParticleBackground />
-            <Navbar />
-            <main className={styles.main}>
-                <Outlet />
-            </main>
-            <Footer />
+            <Navbar onToggleSidebar={() => setIsCollapsed(!isCollapsed)} isCollapsed={isCollapsed} />
+            <div className={clsx(styles.wrapper, isCollapsed && styles.collapsed)}>
+                <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+                <main className={styles.main}>
+                    <Outlet />
+                </main>
+            </div>
         </div>
     );
 };

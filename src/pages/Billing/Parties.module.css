@@ -1,0 +1,198 @@
+.container {
+    padding: var(--spacing-lg);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.header h1 {
+    font-size: 1.875rem;
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.header p {
+    color: var(--color-text-secondary);
+    margin: 4px 0 0 0;
+}
+
+.icon {
+    color: var(--color-primary);
+}
+
+.content {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--spacing-xl);
+}
+
+.addCard h2, .listCard h2 {
+    font-size: 1.125rem;
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-text-primary);
+}
+
+.addForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.field input, .field textarea {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.field input:focus, .field textarea:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-glow);
+}
+
+.status {
+    margin-top: var(--spacing-md);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.success {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.error {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+
+.listHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 300px;
+}
+
+.search svg {
+    position: absolute;
+    left: 10px;
+    color: var(--color-text-secondary);
+}
+
+.search input {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    text-align: left;
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+}
+
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    vertical-align: top;
+}
+
+.partyInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.gstTag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--color-bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--color-primary);
+    width: fit-content;
+}
+
+.addrCell {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    max-width: 300px;
+}
+
+.deleteBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 4px;
+}
+
+.deleteBtn:hover {
+    color: var(--color-danger);
+}
+
+.empty {
+    text-align: center;
+    padding: 3rem !important;
+    color: var(--color-text-secondary);
+}
+
+@media (max-width: 1200px) {
+    .content {
+        grid-template-columns: 1fr;
+    }
+}

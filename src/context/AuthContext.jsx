@@ -7,12 +7,26 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check for existing session token
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-            setIsAuthenticated(true);
-        }
-        setLoading(false);
+        const verifyToken = async () => {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                try {
+                    const response = await fetch('/api/verify', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        setIsAuthenticated(true);
+                    } else {
+                        localStorage.removeItem('auth_token');
+                        setIsAuthenticated(false);
+                    }
+                } catch (error) {
+                    setIsAuthenticated(false);
+                }
+            }
+            setLoading(false);
+        };
+        verifyToken();
     }, []);
 
     const login = async (username, password) => {

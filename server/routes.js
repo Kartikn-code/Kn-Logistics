@@ -122,6 +122,10 @@ const parseExcelDateSecure = (val) => {
 router.post('/login', (req, res) => {
     const { username, password } = req.body;
 
+    if (!username || !password) {
+        return res.status(400).json({ success: false, message: 'Username and password are required' });
+    }
+
     // First check hardcoded environment variables as a master login
     if (username === ADMIN_USER && password === ADMIN_PASS) {
         const token = jwt.sign({ id: username, role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
@@ -142,6 +146,11 @@ router.post('/login', (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
     });
+});
+
+// GET Verify Token
+router.get('/verify', verifyToken, (req, res) => {
+    res.json({ success: true, user: { id: req.userId, role: req.userRole } });
 });
 
 // POST Signup (Protected to ensure only authorized users can create more users)
@@ -1654,6 +1663,334 @@ router.post('/contact', async (req, res) => {
         console.error('Nodemailer Error:', error);
         res.status(500).json({ success: false, message: 'Failed to send message via email server' });
     }
+});
+
+// ===== BILLING & INVOICING ROUTES =====
+
+// CREATE or ADD to Bill
+router.post('/billing/bills', verifyToken, (req, res) => {
+    const { billNo, date, billToAddr, dispatchAddr, billToGst } = req.body;
+    if (!billNo) return res.status(400).json({ error: 'Bill No is required' });
+
+    db.run(`
+        INSERT INTO billing_bills (billNo, date, billToAddr, dispatchAddr, billToGst) 
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(billNo) DO UPDATE SET 
+            date = excluded.date,
+            billToAddr = excluded.billToAddr,
+            dispatchAddr = excluded.dispatchAddr,
+            billToGst = excluded.billToGst
+    `, [billNo, date, billToAddr, dispatchAddr, billToGst], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Bill created/updated successfully' });
+    });
+});
+
+// GET all bills with totals
+router.get('/billing/bills', verifyToken, (req, res) => {
+    const sql = `
+        SELECT b.*, 
+               COUNT(e.id) as entryCount,
+               COALESCE(SUM(e.total), 0) as grandTotal,
+               (COALESCE(SUM(e.total), 0) - COALESCE(p.paidAmount, 0)) as pendingAmount
+        FROM billing_bills b
+        LEFT JOIN billing_entries e ON b.billNo = e.billNo
+        LEFT JOIN (
+            SELECT billNo, SUM(amount) as paidAmount 
+            FROM billing_payments 
+            GROUP BY billNo
+        ) p ON b.billNo = p.billNo
+        GROUP BY b.billNo
+        ORDER BY b.date DESC
+    `;
+    db.all(sql, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ data: rows });
+    });
+});
+
+// GET single bill with entries
+router.get('/billing/bills/:billNo', verifyToken, async (req, res) => {
+    const { billNo } = req.params;
+    try {
+        const bill = await new Promise((resolve, reject) => {
+            db.get('SELECT * FROM billing_bills WHERE billNo = ?', [billNo], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+
+        if (!bill) return res.status(404).json({ error: 'Bill not found' });
+
+        const entries = await new Promise((resolve, reject) => {
+            db.all('SELECT * FROM billing_entries WHERE billNo = ? ORDER BY dispatchDate ASC', [billNo], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+
+        res.json({ data: { ...bill, entries } });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE bill
+router.delete('/billing/bills/:billNo', verifyToken, (req, res) => {
+    const { billNo } = req.params;
+    db.run('DELETE FROM billing_bills WHERE billNo = ?', [billNo], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Bill and associated entries deleted' });
+    });
+});
+
+// CREATE entry
+router.post('/billing/entries', verifyToken, (req, res) => {
+    const { 
+        billNo, dispatchDate, lrNo, from_, to_, poInvoiceNo, tons, truckNo, 
+        dateOfArrival, dateOfDelivery, freight, multiPoint, loading, 
+        unloading, halting, total 
+    } = req.body;
+
+    if (!billNo || !lrNo || !poInvoiceNo) {
+        return res.status(400).json({ error: 'Bill No, LR No, and PO/Invoice No are required' });
+    }
+
+    const sql = `INSERT INTO billing_entries (
+        billNo, dispatchDate, lrNo, from_, to_, poInvoiceNo, tons, truckNo, 
+        dateOfArrival, dateOfDelivery, freight, multiPoint, loading, 
+        unloading, halting, total
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    db.run(sql, [
+        billNo, dispatchDate, lrNo, from_, to_, poInvoiceNo, tons, truckNo, 
+        dateOfArrival, dateOfDelivery, freight, multiPoint, loading, 
+        unloading, halting, total
+    ], function (err) {
+        if (err) {
+            if (err.message.includes('UNIQUE constraint failed')) {
+                return res.status(400).json({ error: 'Duplicate LR No or PO/Invoice No detected' });
+            }
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'Entry added successfully', id: this.lastID });
+    });
+});
+
+// UPDATE entry
+router.put('/billing/entries/:id', verifyToken, (req, res) => {
+    const { id } = req.params;
+    const { 
+        dispatchDate, lrNo, from_, to_, poInvoiceNo, tons, truckNo, 
+        dateOfArrival, dateOfDelivery, freight, multiPoint, loading, 
+        unloading, halting, total 
+    } = req.body;
+
+    const sql = `UPDATE billing_entries SET 
+        dispatchDate=?, lrNo=?, from_=?, to_=?, poInvoiceNo=?, tons=?, truckNo=?, 
+        dateOfArrival=?, dateOfDelivery=?, freight=?, multiPoint=?, loading=?, 
+        unloading=?, halting=?, total=?
+        WHERE id=?`;
+
+    db.run(sql, [
+        dispatchDate, lrNo, from_, to_, poInvoiceNo, tons, truckNo, 
+        dateOfArrival, dateOfDelivery, freight, multiPoint, loading, 
+        unloading, halting, total, id
+    ], function (err) {
+        if (err) {
+            if (err.message.includes('UNIQUE constraint failed')) {
+                return res.status(400).json({ error: 'Duplicate LR No or PO/Invoice No detected' });
+            }
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'Entry updated successfully' });
+    });
+});
+
+// DELETE entry
+router.delete('/billing/entries/:id', verifyToken, (req, res) => {
+    const { id } = req.params;
+    db.run('DELETE FROM billing_entries WHERE id = ?', [id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Entry deleted' });
+    });
+});
+
+// PAYMENTS
+router.post('/billing/payments', verifyToken, (req, res) => {
+    const { billNo, amount, date, method, note } = req.body;
+    if (!billNo || !amount || !date) return res.status(400).json({ error: 'Bill No, Amount, and Date are required' });
+
+    const sql = `INSERT INTO billing_payments (billNo, amount, date, method, note) VALUES (?, ?, ?, ?, ?)`;
+    db.run(sql, [billNo, amount, date, method, note], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        // Auto-update bill status if fully paid
+        const checkSql = `
+            SELECT 
+                (SELECT COALESCE(SUM(total), 0) FROM billing_entries WHERE billNo = ?) as totalBill,
+                (SELECT COALESCE(SUM(amount), 0) FROM billing_payments WHERE billNo = ?) as totalPaid
+        `;
+        db.get(checkSql, [billNo, billNo], (err, row) => {
+            if (!err && row) {
+                let status = 'Partial';
+                if (row.totalPaid >= row.totalBill && row.totalBill > 0) status = 'Paid';
+                else if (row.totalPaid === 0) status = 'Pending';
+                
+                db.run('UPDATE billing_bills SET status = ? WHERE billNo = ?', [status, billNo]);
+            }
+        });
+
+        res.json({ message: 'Payment recorded successfully', id: this.lastID });
+    });
+});
+
+router.get('/billing/payments', verifyToken, (req, res) => {
+    db.all('SELECT * FROM billing_payments ORDER BY date DESC, createdAt DESC', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ data: rows });
+    });
+});
+
+router.delete('/billing/payments/:id', verifyToken, (req, res) => {
+    const { id } = req.params;
+    db.run('DELETE FROM billing_payments WHERE id = ?', [id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Payment deleted' });
+    });
+});
+
+// ANALYTICS
+router.get('/billing/analytics', verifyToken, async (req, res) => {
+    const year = req.query.year || new Date().getFullYear().toString();
+    const isPg = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+    const yearExt = isPg ? "TO_CHAR(date, 'YYYY')" : "strftime('%Y', date)";
+    const monthExt = isPg ? "TO_CHAR(date, 'MM')" : "strftime('%m', date)";
+
+    try {
+        // KPI Cards
+        const kpiSql = `
+            SELECT 
+                COALESCE(SUM(e.total), 0) as totalBilled,
+                COALESCE((SELECT SUM(amount) FROM billing_payments), 0) as totalReceived,
+                COUNT(DISTINCT b.billNo) as billCount,
+                COUNT(e.id) as lrCount
+            FROM billing_bills b
+            LEFT JOIN billing_entries e ON b.billNo = e.billNo
+            WHERE ${yearExt} = ?
+        `;
+        const kpis = await new Promise((resolve) => db.get(kpiSql, [year], (err, row) => resolve(row)));
+
+        // Monthly Data
+        const monthlySql = `
+            SELECT 
+                m.month,
+                COALESCE(SUM(e.total), 0) as billed,
+                COALESCE(p.received, 0) as received
+            FROM (
+                SELECT '01' as month UNION SELECT '02' UNION SELECT '03' UNION SELECT '04' UNION 
+                SELECT '05' UNION SELECT '06' UNION SELECT '07' UNION SELECT '08' UNION 
+                SELECT '09' UNION SELECT '10' UNION SELECT '11' UNION SELECT '12'
+            ) m
+            LEFT JOIN billing_bills b ON ${monthExt} = m.month AND ${yearExt} = ?
+            LEFT JOIN billing_entries e ON b.billNo = e.billNo
+            LEFT JOIN (
+                SELECT ${monthExt} as payMonth, SUM(amount) as received
+                FROM billing_payments
+                WHERE ${yearExt} = ?
+                GROUP BY payMonth
+            ) p ON m.month = p.payMonth
+            GROUP BY m.month
+            ORDER BY m.month
+        `;
+        const monthlyData = await new Promise((resolve) => db.all(monthlySql, [year, year], (err, rows) => resolve(rows)));
+
+        // Top Routes
+        const routesSql = `
+            SELECT from_ || ' → ' || to_ as route, SUM(total) as revenue
+            FROM billing_entries
+            WHERE billNo IN (SELECT billNo FROM billing_bills WHERE ${yearExt} = ?)
+            GROUP BY from_, to_
+            ORDER BY revenue DESC
+            LIMIT 6
+        `;
+        const topRoutes = await new Promise((resolve) => db.all(routesSql, [year], (err, rows) => resolve(rows)));
+
+        res.json({
+            year,
+            kpis: {
+                ...kpis,
+                totalPending: (kpis.totalBilled || 0) - (kpis.totalReceived || 0),
+                avgPerBill: kpis.billCount > 0 ? (kpis.totalBilled / kpis.billCount) : 0
+            },
+            monthlyData,
+            topRoutes
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET Locations
+router.get('/billing/locations', verifyToken, (req, res) => {
+    db.all(`SELECT * FROM billing_locations ORDER BY name ASC`, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// ADD Location
+router.post('/billing/locations', verifyToken, (req, res) => {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+
+    db.run(`INSERT INTO billing_locations (name) VALUES (?)`, [name], function (err) {
+        if (err) {
+            if (err.message.includes('UNIQUE')) return res.status(400).json({ error: 'Location already exists' });
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ id: this.lastID, name });
+    });
+});
+
+// DELETE Location
+router.delete('/billing/locations/:id', verifyToken, (req, res) => {
+    db.run(`DELETE FROM billing_locations WHERE id = ?`, [req.params.id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Location deleted' });
+    });
+});
+
+// --- PARTY/CUSTOMER ROUTES ---
+
+// GET Parties
+router.get('/billing/parties', verifyToken, (req, res) => {
+    db.all(`SELECT * FROM billing_parties ORDER BY name ASC`, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// ADD Party
+router.post('/billing/parties', verifyToken, (req, res) => {
+    const { name, address, gst } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+
+    db.run(`INSERT INTO billing_parties (name, address, gst) VALUES (?, ?, ?)`, [name, address, gst], function (err) {
+        if (err) {
+            if (err.message.includes('UNIQUE')) return res.status(400).json({ error: 'Party already exists' });
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ id: this.lastID, name, address, gst });
+    });
+});
+
+// DELETE Party
+router.delete('/billing/parties/:id', verifyToken, (req, res) => {
+    db.run(`DELETE FROM billing_parties WHERE id = ?`, [req.params.id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Party deleted' });
+    });
 });
 
 export default router;

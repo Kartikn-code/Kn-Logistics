@@ -1,0 +1,229 @@
+.container {
+    padding: var(--spacing-lg);
+    width: 100%;
+    max-width: 100%;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.header h1 {
+    font-size: 2rem;
+    color: var(--color-text-primary);
+}
+
+.filterCard {
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.filterGrid {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+.searchBox {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchBox svg {
+    position: absolute;
+    left: 12px;
+    color: var(--color-text-muted);
+}
+
+.searchBox input {
+    width: 100%;
+    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+.filterGrid select {
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+.resetBtn {
+    gap: var(--spacing-xs);
+}
+
+.tableContainer {
+    background: var(--glass-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border);
+    overflow-x: auto; /* Allow horizontal scroll for large tables */
+    box-shadow: var(--glass-shadow);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px; /* Ensure content doesn't squash */
+}
+
+.table th {
+    text-align: left;
+    padding: 1rem;
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.billRow {
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border);
+    transition: background var(--transition-fast);
+}
+
+.billRow:hover {
+    background: var(--color-bg-secondary);
+}
+
+.expandedRow {
+    background: var(--color-bg-tertiary);
+}
+
+.billRow td {
+    padding: 0.75rem 0.5rem;
+}
+
+.billNo {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.amount {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 600;
+}
+
+.pendingAmount {
+    color: var(--color-danger);
+}
+
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.Pending { background: var(--color-warning-bg); color: var(--color-warning); border: 1px solid var(--color-warning); }
+.Partial { background: var(--color-accent); color: white; }
+.Paid { background: var(--color-success-bg); color: var(--color-success); border: 1px solid var(--color-success); }
+
+.statusPaid { color: var(--color-success); }
+.statusPartial { color: white; }
+.statusPending { color: var(--color-warning); }
+
+.rowActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.deleteBtn:hover {
+    background: var(--color-danger);
+    color: white;
+    border-color: var(--color-danger);
+}
+
+.subEntriesRow {
+    background: var(--color-bg-primary);
+}
+
+.subEntriesContainer {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    border-left: 4px solid var(--color-primary);
+    background: rgba(16, 185, 129, 0.02);
+    overflow-x: auto;
+}
+
+.subTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 1000px;
+}
+
+.subTable th {
+    background: transparent;
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.5rem 0.25rem;
+    font-size: 0.8rem;
+}
+
+.subTable td {
+    padding: 0.5rem 0.25rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-size: 0.85rem;
+}
+
+.subTable input {
+    padding: 4px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    width: 100%;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+.subRowActions, .editActions {
+    display: flex;
+    gap: 8px;
+}
+
+.subRowActions button, .editActions button {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.subRowActions button:hover { color: var(--color-primary); }
+.editActions button:first-child { color: var(--color-success); }
+.editActions button:last-child { color: var(--color-danger); }
+
+.loadingCell, .emptyCell {
+    text-align: center;
+    padding: 3rem;
+    color: var(--color-text-secondary);
+}
+
+@media (max-width: 1024px) {
+    .filterGrid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .resetBtn {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: var(--spacing-md);
+    }
+    .header h1 {
+        font-size: 1.5rem;
+    }
+}

@@ -1,0 +1,198 @@
+.container {
+    padding: var(--spacing-lg);
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+    gap: var(--spacing-md);
+}
+
+.titleArea {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.icon {
+    color: var(--color-primary);
+}
+
+.titleArea h1 {
+    font-size: 1.75rem;
+    color: var(--color-text-primary);
+}
+
+.titleArea p {
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+}
+
+.matchBadge {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 0.6rem 1rem;
+    background: var(--color-primary-glow);
+    color: var(--color-primary-dark);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.sectionCard {
+    padding: var(--spacing-lg);
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-primary);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-sm);
+}
+
+.sectionHeader h2 {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.field label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.field input, .field select, .field textarea {
+    padding: 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    transition: all var(--transition-fast);
+}
+
+.field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-primary-glow);
+}
+
+.inputError {
+    border-color: var(--color-danger) !important;
+}
+
+.errorMsg {
+    color: var(--color-danger);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.totalPreview {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    padding: var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--color-primary);
+}
+
+.totalPreview span {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+}
+
+.totalPreview h3 {
+    font-size: 1.5rem;
+    color: var(--color-primary);
+}
+
+.formActions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+}
+
+.statusMsg {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    width: 100%;
+}
+
+.success {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
+}
+
+.error {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+}
+
+.submitBtn {
+    width: 100%;
+    max-width: 400px;
+    gap: var(--spacing-sm);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: var(--spacing-md);
+    }
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+.gridWide {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}

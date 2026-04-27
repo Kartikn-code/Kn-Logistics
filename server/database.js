@@ -311,14 +311,73 @@ const createTables = async () => {
 
 
         await dbWrapper.run(`
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE IF NOT EXISTS billing_bills (
+                billNo VARCHAR(100) PRIMARY KEY,
+                date DATE NOT NULL,
+                billToAddr TEXT,
+                dispatchAddr TEXT,
+                status VARCHAR(50) DEFAULT 'Pending'
+            )
+        `);
+
+        await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS billing_entries (
                 id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
-                username VARCHAR(100) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL
+                billNo VARCHAR(100) NOT NULL,
+                dispatchDate DATE,
+                lrNo VARCHAR(100) UNIQUE NOT NULL,
+                from_ VARCHAR(255),
+                to_ VARCHAR(255),
+                poInvoiceNo VARCHAR(100) UNIQUE NOT NULL,
+                tons DECIMAL(10, 2),
+                truckNo VARCHAR(100),
+                dateOfArrival DATE,
+                dateOfDelivery DATE,
+                freight DECIMAL(15, 2) DEFAULT 0,
+                multiPoint DECIMAL(15, 2) DEFAULT 0,
+                loading DECIMAL(15, 2) DEFAULT 0,
+                unloading DECIMAL(15, 2) DEFAULT 0,
+                halting DECIMAL(15, 2) DEFAULT 0,
+                total DECIMAL(15, 2) DEFAULT 0,
+                FOREIGN KEY (billNo) REFERENCES billing_bills(billNo) ON DELETE CASCADE
+            )
+        `);
+
+        await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS billing_payments (
+                id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+                billNo VARCHAR(100) NOT NULL,
+                amount DECIMAL(15, 2) NOT NULL,
+                date DATE NOT NULL,
+                method VARCHAR(50),
+                note TEXT,
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (billNo) REFERENCES billing_bills(billNo) ON DELETE CASCADE
+            )
+        `);
+ 
+        await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS billing_locations (
+                id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+                name VARCHAR(255) UNIQUE NOT NULL,
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS billing_parties (
+                id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+                name VARCHAR(255) UNIQUE NOT NULL,
+                address TEXT,
+                gst VARCHAR(50),
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
         if (dbWrapper.type === 'sqlite') {
+            try {
+                await dbWrapper.run(`ALTER TABLE billing_bills ADD COLUMN billToGst VARCHAR(50);`);
+            } catch (err) { /* column exists */ }
             try {
                 await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN invoiceNo VARCHAR(100);`);
             } catch (err) { /* column exists */ }

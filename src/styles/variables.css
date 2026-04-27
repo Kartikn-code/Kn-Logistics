@@ -1,71 +1,58 @@
 :root {
   /* ==========================================================
-     KN LOGISTICS - LIGHT THEME (DEFAULT)
+     KN LOGISTICS - LIGHT THEME (DEFAULT - TEAL/EMERALD)
      ========================================================== */
 
   /* Light Backgrounds */
   --color-bg-primary: #ffffff;
   --color-bg-secondary: #f4fdf4;
-  /* VERY light green tint */
   --color-bg-tertiary: #e9f9eb;
-  /* Light green tint for cards */
 
-  /* High-Contrast Brand Accents (Light Green Theme) */
-  --color-primary: #10b981;
-  /* Emerald Green */
-  --color-primary-glow: rgba(16, 185, 129, 0.3);
-  --color-primary-dark: #059669;
-  /* Darker Emerald */
+  /* Brand Accents */
+  --color-primary: #0d9488;
+  --color-primary-glow: rgba(13, 148, 136, 0.3);
+  --color-primary-dark: #0f766e;
   --color-secondary: #0ea5e9;
-  /* Sky Blue accent */
-  --color-accent: #3b82f6;
-  /* Blue accent */
+  --color-accent: #14b8a6;
 
-  /* Glass & Glossy Variables */
+  /* Glass & Glossy */
   --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(16, 185, 129, 0.15);
-  /* Greenish glass border */
-  --glass-shadow: 0 8px 32px 0 rgba(16, 185, 129, 0.08);
-  /* Greenish shadow */
+  --glass-border: rgba(13, 148, 136, 0.15);
+  --glass-shadow: 0 8px 32px 0 rgba(13, 148, 136, 0.08);
 
   /* Status Colors */
-  --color-success: #22c55e;
-  --color-success-bg: rgba(34, 197, 94, 0.15);
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.1);
   --color-warning: #f59e0b;
-  --color-warning-bg: rgba(245, 158, 11, 0.15);
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
   --color-danger: #ef4444;
-  --color-danger-bg: rgba(239, 68, 68, 0.15);
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
   --color-info: #0ea5e9;
 
-  /* Typography Colors */
-  --color-text-primary: #1e293b;
-  /* Slate 800 - High contrast text */
+  /* Typography */
+  --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
-  /* Slate 600 - Muted text */
   --color-text-muted: #94a3b8;
-  /* Slate 400 - Very muted text */
 
-  /* Structural UI Variables */
-  --color-border: rgba(16, 185, 129, 0.2);
-  /* Emerald border */
+  /* Structural UI */
+  --color-border: rgba(13, 148, 136, 0.1);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
+  --radius-xl: 32px;
   --radius-full: 9999px;
 
   /* Transitions */
   --transition-fast: 0.15s ease-in-out;
   --transition-normal: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  /* Bouncy */
   --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Heights/Widths */
+  /* Dimensions */
   --header-height: 70px;
   --sidebar-width: 250px;
   --sidebar-collapsed-width: 80px;
   --container-max-width: 1400px;
-
-  --font-primary: 'Poppins', system-ui, -apple-system, sans-serif;
+  --font-primary: 'Poppins', sans-serif;
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -75,32 +62,37 @@
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
 
-  /* Components */
-  --shadow-sm: 0 1px 2px rgba(16, 185, 129, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(16, 185, 129, 0.15);
-  --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.4);
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(13, 148, 136, 0.3);
 }
 
-/* Dark Mode Overrides */
-:root[data-theme="dark"] {
-  --color-bg-primary: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
+/* ==========================================================
+   KN LOGISTICS - WARM THEME (RED/ORANGE DARK)
+   ========================================================== */
+:root[data-theme="warm"] {
+  --color-bg-primary: #020617;
+  --color-bg-secondary: #0f172a;
+  --color-bg-tertiary: #1e293b;
 
-  --color-primary: #10b981;
-  --color-primary-glow: rgba(16, 185, 129, 0.2);
-  --color-primary-dark: #059669;
+  --color-primary: #f43f5e; /* Crimson */
+  --color-primary-glow: rgba(244, 63, 94, 0.25);
+  --color-primary-dark: #be123c;
+  --color-secondary: #fb923c; /* Orange */
+  --color-accent: #f59e0b; /* Amber */
 
-  --glass-bg: rgba(30, 41, 59, 0.85);
-  --glass-border: rgba(16, 185, 129, 0.2);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  --glass-bg: rgba(15, 23, 42, 0.85);
+  --glass-border: rgba(244, 63, 94, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
 
   --color-text-primary: #f8fafc;
   --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
+  --color-text-muted: #64748b;
 
-  --color-border: rgba(16, 185, 129, 0.2);
+  --color-border: rgba(244, 63, 94, 0.15);
+  --shadow-glow: 0 0 20px rgba(244, 63, 94, 0.4);
 
   color-scheme: dark;
 }

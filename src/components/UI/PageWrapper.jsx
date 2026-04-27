@@ -32,7 +32,7 @@ const PageWrapper = ({ children }) => {
             exit="out"
             variants={pageVariants}
             transition={pageTransition}
-            style={{ width: '100%', minHeight: '100vh', paddingTop: '70px' }}
+            style={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}
         >
             {children}
         </motion.div>

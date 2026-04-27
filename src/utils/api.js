@@ -561,3 +561,239 @@ export const createExpense = async (expenseData) => {
         throw error;
     }
 };
+
+// --- BILLING API ---
+
+export const createBill = async (billData) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/bills`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(billData),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to save bill');
+        return result;
+    } catch (error) {
+        console.error('Error saving bill:', error);
+        throw error;
+    }
+};
+
+export const getBills = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/bills`);
+        if (!response.ok) throw new Error('Failed to fetch bills');
+        const data = await response.json();
+        return data.data;
+    } catch (error) {
+        console.error('Error fetching bills:', error);
+        return [];
+    }
+};
+
+export const getBillByNo = async (billNo) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/bills/${billNo}`);
+        if (!response.ok) throw new Error('Bill not found');
+        const data = await response.json();
+        return data.data;
+    } catch (error) {
+        console.error('Error fetching bill details:', error);
+        return null;
+    }
+};
+
+export const deleteBill = async (billNo) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/bills/${billNo}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to delete bill');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting bill:', error);
+        throw error;
+    }
+};
+
+export const createEntry = async (entryData) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/entries`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entryData),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to add entry');
+        return result;
+    } catch (error) {
+        console.error('Error adding entry:', error);
+        throw error;
+    }
+};
+
+export const updateEntry = async (id, entryData) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/entries/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entryData),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to update entry');
+        return result;
+    } catch (error) {
+        console.error('Error updating entry:', error);
+        throw error;
+    }
+};
+
+export const deleteEntry = async (id) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/entries/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to delete entry');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting entry:', error);
+        throw error;
+    }
+};
+
+export const recordPayment = async (paymentData) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/payments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(paymentData),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to record payment');
+        return result;
+    } catch (error) {
+        console.error('Error recording payment:', error);
+        throw error;
+    }
+};
+
+export const getPayments = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/payments`);
+        if (!response.ok) throw new Error('Failed to fetch payments');
+        const data = await response.json();
+        return data.data;
+    } catch (error) {
+        console.error('Error fetching payments:', error);
+        return [];
+    }
+};
+
+export const deletePayment = async (id) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/payments/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to delete payment');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting payment:', error);
+        throw error;
+    }
+};
+
+export const getBillingAnalytics = async (year) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/analytics?year=${year}`);
+        if (!response.ok) throw new Error('Failed to fetch billing analytics');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching billing analytics:', error);
+        return null;
+    }
+};
+
+// --- LOCATIONS API ---
+
+export const getLocations = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/locations`);
+        if (!response.ok) throw new Error('Failed to fetch locations');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching locations:', error);
+        return [];
+    }
+};
+
+export const createLocation = async (name) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/locations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to add location');
+        return result;
+    } catch (error) {
+        console.error('Error adding location:', error);
+        throw error;
+    }
+};
+
+export const deleteLocation = async (id) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/locations/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to delete location');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting location:', error);
+        throw error;
+    }
+};
+
+// --- PARTIES API ---
+
+export const getParties = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/parties`);
+        if (!response.ok) throw new Error('Failed to fetch parties');
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching parties:', error);
+        return [];
+    }
+};
+
+export const createParty = async (partyData) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/parties`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(partyData),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to add party');
+        return result;
+    } catch (error) {
+        console.error('Error adding party:', error);
+        throw error;
+    }
+};
+
+export const deleteParty = async (id) => {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/billing/parties/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to delete party');
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting party:', error);
+        throw error;
+    }
+};
