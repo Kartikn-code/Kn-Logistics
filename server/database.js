@@ -176,6 +176,7 @@ const initializeDatabase = async () => {
         console.log("🪶 Connecting to local SQLite database...");
         const dbPath = path.resolve(__dirname, 'database.sqlite');
         const db = new sqlite3.Database(dbPath);
+        db.run('PRAGMA foreign_keys = ON');
         dbWrapper.sqliteDb = db;
 
         // SQLite-specific wrapper logic (Promisified)

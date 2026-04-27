@@ -1738,9 +1738,19 @@ router.get('/billing/bills/:billNo', verifyToken, async (req, res) => {
 // DELETE bill
 router.delete('/billing/bills/:billNo', verifyToken, (req, res) => {
     const { billNo } = req.params;
-    db.run('DELETE FROM billing_bills WHERE billNo = ?', [billNo], function (err) {
+    
+    // Explicitly delete entries and payments first to be robust (even if CASCADE is on)
+    db.run('DELETE FROM billing_entries WHERE billNo = ?', [billNo], (err) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: 'Bill and associated entries deleted' });
+        
+        db.run('DELETE FROM billing_payments WHERE billNo = ?', [billNo], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            db.run('DELETE FROM billing_bills WHERE billNo = ?', [billNo], function (err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ message: 'Bill and associated entries deleted' });
+            });
+        });
     });
 });
 
