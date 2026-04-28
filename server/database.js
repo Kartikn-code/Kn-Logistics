@@ -1,9 +1,4 @@
-let sqlite3;
-try {
-    sqlite3 = (await import('sqlite3')).default;
-} catch (e) {
-    // sqlite3 not available (e.g., on Vercel) — PostgreSQL will be used instead
-}
+import sqlite3 from 'sqlite3';
 import pg from 'pg';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -75,6 +70,7 @@ const initializeDatabase = async () => {
                 else throw err;
             }
         };
+
         const camelCaseRow = (row) => {
             if (!row) return row;
             const mapped = { ...row };
@@ -112,7 +108,8 @@ const initializeDatabase = async () => {
                 'yettoreceive': 'yetToReceive',
                 'nipponratesum': 'nipponRateSum',
                 'myrate': 'myRate',
-                'nipponrate': 'nipponRate'
+                'nipponrate': 'nipponRate',
+                'billtogst': 'billToGst'
             };
 
             for (const [lower, camel] of Object.entries(keyMap)) {
@@ -212,6 +209,16 @@ const initializeDatabase = async () => {
 
 const createTables = async () => {
     try {
+        // Users table
+        await dbWrapper.run(`
+            CREATE TABLE IF NOT EXISTS users (
+                id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
+                username VARCHAR(255) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         await dbWrapper.run(`
             CREATE TABLE IF NOT EXISTS orders (
                 id ${dbWrapper.type === 'postgres' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
@@ -317,6 +324,7 @@ const createTables = async () => {
                 date DATE NOT NULL,
                 billToAddr TEXT,
                 dispatchAddr TEXT,
+                billToGst VARCHAR(50),
                 status VARCHAR(50) DEFAULT 'Pending'
             )
         `);
@@ -375,29 +383,35 @@ const createTables = async () => {
             )
         `);
 
-        if (dbWrapper.type === 'sqlite') {
-            try {
-                await dbWrapper.run(`ALTER TABLE billing_bills ADD COLUMN billToGst VARCHAR(50);`);
-            } catch (err) { /* column exists */ }
-            try {
-                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN invoiceNo VARCHAR(100);`);
-            } catch (err) { /* column exists */ }
-            try {
-                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN deliveryDate DATE;`);
-            } catch (err) { /* column exists */ }
-            try {
-                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN dateOfArrival DATE;`);
-            } catch (err) { /* column exists */ }
-            try {
-                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN multiPoint DECIMAL(15, 2) DEFAULT 0;`);
-            } catch (err) { /* column exists */ }
-            try {
-                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN fuelCost DECIMAL(15, 2) DEFAULT 0;`);
-            } catch (err) { /* column exists */ }
-            try {
-                await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN driverFee DECIMAL(15, 2) DEFAULT 0;`);
-            } catch (err) { /* column exists */ }
-        }
+        // Migration: Add columns if they don't exist
+        // This runs for both SQLite and Postgres
+        try {
+            await dbWrapper.run(`ALTER TABLE billing_bills ADD COLUMN billToGst VARCHAR(50);`);
+        } catch (err) { /* column exists or error adding */ }
+        
+        try {
+            await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN invoiceNo VARCHAR(100);`);
+        } catch (err) { /* column exists */ }
+        
+        try {
+            await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN deliveryDate DATE;`);
+        } catch (err) { /* column exists */ }
+        
+        try {
+            await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN dateOfArrival DATE;`);
+        } catch (err) { /* column exists */ }
+        
+        try {
+            await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN multiPoint DECIMAL(15, 2) DEFAULT 0;`);
+        } catch (err) { /* column exists */ }
+        
+        try {
+            await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN fuelCost DECIMAL(15, 2) DEFAULT 0;`);
+        } catch (err) { /* column exists */ }
+        
+        try {
+            await dbWrapper.run(`ALTER TABLE dispatch_records ADD COLUMN driverFee DECIMAL(15, 2) DEFAULT 0;`);
+        } catch (err) { /* column exists */ }
 
         // Seed admin user if it doesn't exist
         const adminUser = process.env.ADMIN_USER || 'admin';
@@ -428,11 +442,7 @@ const db = {
         dbWrapper.run(q, p)
             .then(res => {
                 if (cb) {
-                    if (dbWrapper.type === 'sqlite') {
-                        cb.call(res, null); // res is 'this' context for sqlite
-                    } else {
-                        cb.call(res, null); // We mock the context for postgres inside dbWrapper.run
-                    }
+                    cb.call(res, null); 
                 }
             })
             .catch(err => { if (cb) cb.call(this, err); });
