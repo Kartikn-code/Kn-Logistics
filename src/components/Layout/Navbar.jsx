@@ -1,6 +1,7 @@
-import { Container, Sun, Moon, Menu, X, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Container, Menu, X, LogOut, PanelLeftClose, PanelLeftOpen, Sun, Moon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import styles from './Navbar.module.css';
 import Sidebar from './Sidebar';
@@ -8,10 +9,10 @@ import clsx from 'clsx';
 
 const Navbar = ({ onToggleSidebar, isCollapsed }) => {
     const [scrolled, setScrolled] = useState(false);
-    const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     
     const { logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -21,19 +22,6 @@ const Navbar = ({ onToggleSidebar, isCollapsed }) => {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
-
-    useEffect(() => {
-        if (theme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.removeAttribute('data-theme');
-        }
-        localStorage.setItem('theme', theme);
-    }, [theme]);
-
-    const toggleTheme = () => {
-        setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-    };
 
     const handleLogout = () => {
         logout();
@@ -58,10 +46,14 @@ const Navbar = ({ onToggleSidebar, isCollapsed }) => {
                 </div>
 
                 <div className={styles.actions}>
-                    <button onClick={toggleTheme} className={styles.themeToggleBtn} aria-label="Toggle theme">
-                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                    <button 
+                        className={styles.themeToggle} 
+                        onClick={toggleTheme}
+                        title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+                    >
+                        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                     </button>
-                    
+
                     <div className={styles.userProfile}>
                         <div className={styles.avatar}>A</div>
                         <div className={styles.userInfo}>

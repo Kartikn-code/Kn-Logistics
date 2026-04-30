@@ -90,7 +90,7 @@ const Parties = () => {
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    placeholder="E.G. NIPPON PAINT (INDIA) PVT LTD"
+                                    placeholder="Enter Party Name"
                                     required
                                 />
                             </div>
@@ -101,7 +101,7 @@ const Parties = () => {
                                     name="gst"
                                     value={formData.gst}
                                     onChange={handleChange}
-                                    placeholder="33AAC..."
+                                    placeholder="Enter GST Number"
                                 />
                             </div>
                             <div className={styles.field}>
@@ -110,7 +110,7 @@ const Parties = () => {
                                     name="address"
                                     value={formData.address}
                                     onChange={handleChange}
-                                    placeholder="Line 1, Line 2, City, State - PIN"
+                                    placeholder="Enter Full Address"
                                     rows={4}
                                 />
                             </div>

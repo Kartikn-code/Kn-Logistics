@@ -19,7 +19,7 @@ const PaymentTracker = () => {
 
     const [paymentForm, setPaymentForm] = useState({
         billNo: '',
-        amount: '',
+        amount: 0,
         date: new Date().toISOString().split('T')[0],
         method: 'NEFT',
         note: ''
@@ -56,7 +56,10 @@ const PaymentTracker = () => {
     }, [bills, payments]);
 
     const handleFormChange = (e) => {
-        const { name, value } = e.target;
+        let { name, value, type } = e.target;
+        if (type === 'number') {
+            value = value === '' ? 0 : parseFloat(value);
+        }
         setPaymentForm(prev => ({ ...prev, [name]: value }));
     };
 
@@ -72,7 +75,7 @@ const PaymentTracker = () => {
             setStatus({ type: 'success', message: 'Payment recorded successfully!' });
             setPaymentForm({
                 billNo: '',
-                amount: '',
+                amount: 0,
                 date: new Date().toISOString().split('T')[0],
                 method: 'NEFT',
                 note: ''

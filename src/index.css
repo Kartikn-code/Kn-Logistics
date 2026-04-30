@@ -1,54 +1,55 @@
 @import './styles/variables.css';
 
 :root {
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--font-body);
   font-weight: 400;
-  font-style: normal;
   line-height: 1.5;
-
-  color-scheme: dark;
-  /* Force dark context for browser defaults */
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-primary);
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 400;
-  font-style: normal;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
   width: 100%;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-header);
+  color: var(--color-text-primary);
 }
 
 #root {
   width: 100%;
-  margin: 0 auto;
 }
+
+/* Global Typography Helpers */
+.heading-xl { font-family: var(--font-header); font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; }
+.heading-lg { font-family: var(--font-header); font-size: 1.75rem; font-weight: 700; letter-spacing: -0.5px; }
+.heading-md { font-family: var(--font-header); font-size: 1.25rem; font-weight: 600; }
+.value-text { font-family: var(--font-body); font-weight: 700; }
+.label-text { font-family: var(--font-header); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-text-muted); }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-primary);
+  background: var(--color-bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-bg-tertiary);
+  background: var(--color-border);
   border-radius: var(--radius-full);
 }
 
@@ -56,47 +57,18 @@ body {
   background: var(--color-primary);
 }
 
-/* Global Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
-
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+/* Anti-Excel Global Table Resets */
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
 }
 
 th {
   font-weight: 700 !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
 }

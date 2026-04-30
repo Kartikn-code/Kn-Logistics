@@ -1,5 +1,5 @@
 .container {
-    padding: var(--spacing-xl);
+    padding: 0;
     width: 100%;
     max-width: 100%;
 }
@@ -81,7 +81,7 @@
 }
 
 .formCard, .statusCard, .historyCard {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-xl);
 }
 
 .form {

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
-import ParticleBackground from '../UI/ParticleBackground';
 import styles from './Layout.module.css';
 import clsx from 'clsx';
 
@@ -11,7 +10,6 @@ const Layout = () => {
 
     return (
         <div className={styles.layout}>
-            <ParticleBackground />
             <Navbar onToggleSidebar={() => setIsCollapsed(!isCollapsed)} isCollapsed={isCollapsed} />
             <div className={clsx(styles.wrapper, isCollapsed && styles.collapsed)}>
                 <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />

@@ -1,22 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { Lock, User, Key, AlertCircle, Truck, Package, MapPin, Shield, Globe, Activity, TrendingUp, Zap, Sun, Moon, Flame } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Lock, User, Key, AlertCircle, Truck, Package, MapPin, Shield, Globe, Activity, TrendingUp, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Button from '../components/UI/Button';
-import LogisticsLoader from '../components/UI/LogisticsLoader';
 import styles from './Login.module.css';
 
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const { login } = useAuth();
-    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -27,10 +23,7 @@ const Login = () => {
         const result = await login(username, password);
 
         if (result.success) {
-            // Long delay to enjoy the visual treat
-            setTimeout(() => {
-                navigate('/dashboard');
-            }, 3500);
+            navigate('/dashboard');
         } else {
             setError(result.message || 'Invalid credentials');
             setIsLoading(false);
@@ -39,97 +32,44 @@ const Login = () => {
 
     return (
         <div className={styles.loginPage}>
-            <AnimatePresence>
-                {isLoading && <LogisticsLoader message={isChangingPassword ? "Syncing Security Protocols..." : "Launching Fleet OS..."} />}
-            </AnimatePresence>
-
-            {/* Theme Toggle Switch */}
-            <div className={styles.themeToggleWrapper}>
-                <motion.button 
-                    className={styles.themeToggleBtn}
-                    onClick={toggleTheme}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                >
-                    {theme === 'light' ? <Flame size={18} /> : <Sun size={18} />}
-                    <span>{theme === 'light' ? 'Warm Theme' : 'Light Theme'}</span>
-                </motion.button>
-            </div>
-
             <div className={styles.backgroundDecorations}>
-                <motion.div 
-                    className={styles.shape1}
-                    animate={{ 
-                        scale: [1, 1.2, 1],
-                        opacity: [0.3, 0.5, 0.3],
-                        rotate: [0, 90, 0]
-                    }}
-                    transition={{ duration: 15, repeat: Infinity }}
-                />
-                <motion.div 
-                    className={styles.shape2}
-                    animate={{ 
-                        scale: [1, 1.3, 1],
-                        opacity: [0.2, 0.4, 0.2],
-                        rotate: [0, -90, 0]
-                    }}
-                    transition={{ duration: 20, repeat: Infinity }}
-                />
+                <div className={styles.shape1} />
+                <div className={styles.shape2} />
             </div>
 
             <div className={styles.splitLayout}>
-                {/* Visual Treat Story Section */}
-                <motion.div 
-                    className={styles.storySection}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 1 }}
-                >
+                {/* Story Section */}
+                <div className={styles.storySection}>
                     <div className={styles.storyContent}>
-                        <motion.div 
-                            className={styles.logoWrapper}
-                            initial={{ y: -50 }}
-                            animate={{ y: 0 }}
-                        >
+                        <div className={styles.logoWrapper}>
                             <div className={styles.logoCircle}>
                                 <Truck size={40} />
                             </div>
-                            <h1>KN Logistics</h1>
-                        </motion.div>
+                            <h1 className="heading-xl">KN Logistics</h1>
+                        </div>
                         
                         <div className={styles.storyText}>
-                            <motion.h2
-                                initial={{ x: -100 }}
-                                animate={{ x: 0 }}
-                                transition={{ delay: 0.2 }}
-                            >
-                                The Future of <br />
-                                <span className={styles.highlight}>Supply Chain</span>
-                            </motion.h2>
-                            <p>An end-to-end intelligent ecosystem designed to move goods faster, safer, and smarter.</p>
+                            <h2 className="heading-xl">
+                                Intelligence in <br />
+                                <span className={styles.highlight}>Motion.</span>
+                            </h2>
+                            <p className={styles.subtitle}>Premium supply chain orchestration and real-time fleet analytics for the modern era.</p>
                         </div>
 
-                        {/* Detailed Metrics Simulation */}
+                        {/* Metrics Section */}
                         <div className={styles.metricsSim}>
                             <div className={styles.metricCard}>
-                                <Activity size={18} className={styles.highlight} />
+                                <Activity size={20} className={styles.accentIcon} />
                                 <div>
-                                    <span className={styles.mValue}>98.4%</span>
-                                    <span className={styles.mLabel}>Efficiency</span>
+                                    <span className="value-text">99.9%</span>
+                                    <span className="label-text">Reliability</span>
                                 </div>
                             </div>
                             <div className={styles.metricCard}>
-                                <TrendingUp size={18} className={styles.highlight} />
+                                <TrendingUp size={20} className={styles.accentIcon} />
                                 <div>
-                                    <span className={styles.mValue}>+24%</span>
-                                    <span className={styles.mLabel}>Growth</span>
-                                </div>
-                            </div>
-                            <div className={styles.metricCard}>
-                                <Zap size={18} className={styles.highlight} />
-                                <div>
-                                    <span className={styles.mValue}>1.2ms</span>
-                                    <span className={styles.mLabel}>Latency</span>
+                                    <span className="value-text">Real-time</span>
+                                    <span className="label-text">Telemetry</span>
                                 </div>
                             </div>
                         </div>
@@ -137,92 +77,77 @@ const Login = () => {
                         <div className={styles.features}>
                             <FeatureItem 
                                 icon={<Globe size={22} />}
-                                title="Smart Route Optimization"
-                                desc="Real-time traffic and terrain analysis for the fastest delivery paths."
+                                title="Global reach"
+                                desc="Seamless orchestration across international borders and regional hubs."
                             />
                             <FeatureItem 
                                 icon={<Shield size={22} />}
-                                title="Automated Billing"
-                                desc="Instant invoice generation with zero-error financial reconciliation."
-                            />
-                            <FeatureItem 
-                                icon={<MapPin size={22} />}
-                                title="Live Fleet Hub"
-                                desc="Track every truck and tonnage across our expansive global network."
+                                title="Zero-Trust security"
+                                desc="Enterprise-grade encryption for all operational data and transit logs."
                             />
                         </div>
 
                         <div className={styles.storyFooter}>
-                            <p>© 2026 KN Logistics Portal | Version 4.2.0-Stable</p>
+                            <p>© 2026 KN Logistics | Premium Access Only</p>
                         </div>
                     </div>
-                </motion.div>
+                </div>
 
-                {/* Glassmorphism Form Section */}
+                {/* Form Section */}
                 <div className={styles.formSection}>
                     <motion.div 
                         className={styles.loginContainer}
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ delay: 0.5 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.4 }}
                     >
                         <div className={styles.loginHeader}>
                             <div className={styles.iconWrapper}>
                                 <Lock size={32} />
                             </div>
-                            <h2>Control Center</h2>
-                            <p>Authenticating node access...</p>
+                            <h2 className="heading-lg">Secure Login</h2>
+                            <p className={styles.formSubtitle}>Authenticate your session to access the hub</p>
                         </div>
 
                         {error && (
-                            <motion.div 
-                                className={styles.errorMessage}
-                                initial={{ x: 20 }}
-                                animate={{ x: 0 }}
-                            >
+                            <div className={styles.errorMessage}>
                                 <AlertCircle size={18} />
                                 <span>{error}</span>
-                            </motion.div>
+                            </div>
                         )}
 
                         <form onSubmit={handleSubmit} className={styles.loginForm}>
                             <div className={styles.formGroup}>
-                                <label>Operator Identity</label>
+                                <label className="label-text">Identifier</label>
                                 <div className={styles.inputWrapper}>
                                     <User size={18} className={styles.inputIcon} />
                                     <input
                                         type="text"
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
-                                        placeholder="Username"
+                                        placeholder="Enter Identifier"
                                         required
                                     />
                                 </div>
                             </div>
 
                             <div className={styles.formGroup}>
-                                <label>Access Key</label>
+                                <label className="label-text">Passphrase</label>
                                 <div className={styles.inputWrapper}>
                                     <Key size={18} className={styles.inputIcon} />
                                     <input
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••"
+                                        placeholder="Enter Passphrase"
                                         required
                                     />
                                 </div>
                             </div>
 
                             <Button type="submit" disabled={isLoading} className={styles.loginBtn}>
-                                INITIALIZE ACCESS
+                                {isLoading ? 'Verifying...' : 'Access Portal'}
                             </Button>
-
-                            <div className={styles.formFooter}>
-                                <button type="button" className={styles.ghostLink}>
-                                    Request Security Token?
-                                </button>
-                            </div>
                         </form>
                     </motion.div>
                 </div>
@@ -232,16 +157,13 @@ const Login = () => {
 };
 
 const FeatureItem = ({ icon, title, desc }) => (
-    <motion.div 
-        className={styles.featureItem}
-        whileHover={{ x: 10 }}
-    >
+    <div className={styles.featureItem}>
         <div className={styles.featureIcon}>{icon}</div>
         <div>
-            <h3>{title}</h3>
-            <p>{desc}</p>
+            <h3 className="heading-md">{title}</h3>
+            <p className={styles.featureDesc}>{desc}</p>
         </div>
-    </motion.div>
+    </div>
 );
 
 export default Login;

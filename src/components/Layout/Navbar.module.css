@@ -1,19 +1,19 @@
 .navbar {
-    height: 80px;
+    height: var(--header-height);
     width: 100%;
     position: fixed;
     top: 0;
     left: 0;
     z-index: 100;
-    transition: all 0.3s ease;
+    transition: all var(--transition-normal);
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--color-border);
 }
 
 .scrolled {
-    height: 70px;
-    box-shadow: var(--glass-shadow);
+    box-shadow: var(--shadow-md);
+    background: var(--color-bg-primary);
 }
 
 .container {
@@ -29,44 +29,47 @@
 .logoArea {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
 }
 
 .sidebarToggle {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
     background: var(--color-bg-secondary);
-    color: var(--color-text-primary);
+    color: var(--color-primary);
     border: 1px solid var(--color-border);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
 }
 
 .sidebarToggle:hover {
-    background: var(--color-primary-glow);
-    color: var(--color-primary);
+    background: var(--color-primary);
+    color: white;
     border-color: var(--color-primary);
+    transform: scale(1.05);
 }
 
 .logo {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .logoIcon {
-    color: var(--color-primary);
+    color: var(--color-secondary); /* Pink Logo */
+    filter: drop-shadow(0 0 10px var(--color-secondary-glow));
 }
 
 .logoText {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
+    font-family: var(--font-header);
     font-weight: 800;
     letter-spacing: -0.5px;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     white-space: nowrap;
@@ -75,45 +78,51 @@
 .actions {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
 }
 
-.themeToggleBtn {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+.themeToggle {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     border: 1px solid var(--color-border);
-    transition: all 0.2s ease;
+    cursor: pointer;
+    transition: all var(--transition-fast);
 }
 
-.themeToggleBtn:hover {
+.themeToggle:hover {
     background: var(--color-bg-tertiary);
-    color: var(--color-primary);
+    color: var(--color-secondary);
+    transform: rotate(15deg);
 }
 
 .userProfile {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding-left: 20px;
-    border-left: 1px solid var(--color-border);
+    gap: 14px;
+    padding: 6px 16px;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-border);
 }
 
 .avatar {
     width: 36px;
     height: 36px;
-    border-radius: 10px;
-    background: var(--color-primary);
+    border-radius: 50%;
+    background: var(--color-secondary);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.9rem;
     font-weight: 700;
+    box-shadow: 0 4px 10px var(--color-secondary-glow);
 }
 
 .userInfo {
@@ -123,9 +132,10 @@
 }
 
 .userName {
-    font-weight: 600;
+    font-weight: 700;
     color: var(--color-text-primary);
     font-size: 0.9rem;
+    font-family: var(--font-header);
 }
 
 .logoutBtn {
@@ -134,11 +144,12 @@
     gap: 4px;
     background: none;
     border: none;
-    color: var(--color-text-secondary);
+    color: var(--color-text-muted);
     font-size: 0.75rem;
+    font-weight: 600;
     padding: 0;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: color var(--transition-fast);
 }
 
 .logoutBtn:hover {
@@ -159,17 +170,17 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.4);
     z-index: 200;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px);
 }
 
 .mobileSidebarContent {
-    width: 280px;
+    width: 300px;
     height: 100%;
     background: var(--color-bg-primary);
-    box-shadow: 10px 0 30px rgba(0,0,0,0.2);
-    animation: slideIn 0.3s ease-out;
+    box-shadow: 20px 0 50px rgba(0,0,0,0.2);
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes slideIn {
@@ -177,8 +188,17 @@
     to { transform: translateX(0); }
 }
 
+@media (max-width: 1024px) {
+    .userName, .userInfo {
+        display: none;
+    }
+    .userProfile {
+        padding: 4px;
+    }
+}
+
 @media (max-width: 768px) {
-    .userName, .userInfo, .sidebarToggle {
+    .sidebarToggle {
         display: none;
     }
     .mobileMenuToggle {

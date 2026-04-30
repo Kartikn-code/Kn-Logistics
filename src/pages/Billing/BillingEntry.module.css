@@ -1,8 +1,8 @@
 .container {
     padding: var(--spacing-lg);
     width: 100%;
-    max-width: 100%;
-    margin: 0;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .header {
@@ -10,7 +10,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--spacing-xl);
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
 }
 
 .titleArea {
@@ -21,100 +21,127 @@
 
 .icon {
     color: var(--color-primary);
+    background: var(--color-primary-glow);
+    padding: 12px;
+    border-radius: var(--radius-md);
 }
 
-.titleArea h1 {
-    font-size: 1.75rem;
-    color: var(--color-text-primary);
-}
-
-.titleArea p {
+.subtitle {
     color: var(--color-text-secondary);
-    font-size: 0.95rem;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 .matchBadge {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    padding: 0.6rem 1rem;
+    padding: 0.8rem 1.2rem;
     background: var(--color-primary-glow);
-    color: var(--color-primary-dark);
-    border: 1px solid var(--color-primary);
-    border-radius: var(--radius-md);
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary-glow);
+    border-radius: var(--radius-full);
     font-size: 0.9rem;
-    animation: fadeIn 0.3s ease;
+    font-weight: 600;
+    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .form {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: 32px;
 }
 
 .sectionCard {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-xl);
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
 }
 
 .sectionHeader {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
+    gap: 12px;
+    margin-bottom: 24px;
     color: var(--color-primary);
     border-bottom: 1px solid var(--color-border);
-    padding-bottom: var(--spacing-sm);
-}
-
-.sectionHeader h2 {
-    font-size: 1.1rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    padding-bottom: 12px;
 }
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.gridWide {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
 }
 
 .field {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: 8px;
 }
 
 .field label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
 }
 
 .field input, .field select, .field textarea {
-    padding: 0.75rem;
-    border-radius: var(--radius-sm);
+    padding: 18px 22px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
-    background: var(--color-bg-primary);
+    background: var(--color-bg-secondary);
     color: var(--color-text-primary);
-    font-size: 1rem;
+    font-size: 1.05rem;
+    font-family: var(--font-body);
     transition: all var(--transition-fast);
+}
+
+.partyField {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-border);
+}
+
+.partyField input {
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
 }
 
 .field input:focus, .field select:focus, .field textarea:focus {
     border-color: var(--color-primary);
+    background: var(--color-bg-primary);
     outline: none;
-    box-shadow: 0 0 0 3px var(--color-primary-glow);
+    box-shadow: 0 0 0 4px var(--color-primary-glow);
 }
 
 .inputError {
-    border-color: var(--color-danger) !important;
+    border-color: var(--color-secondary) !important; /* Use pink for errors in dark green mode */
+    background: var(--color-secondary-glow) !important;
 }
 
 .errorMsg {
-    color: var(--color-danger);
+    color: var(--color-secondary);
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 700;
 }
 
 .totalPreview {
@@ -122,62 +149,75 @@
     flex-direction: column;
     align-items: flex-end;
     justify-content: center;
-    padding: var(--spacing-md);
-    background: var(--color-bg-tertiary);
+    padding: 24px;
+    background: var(--color-bg-secondary);
     border-radius: var(--radius-md);
-    border: 1px dashed var(--color-primary);
+    border: 2px dashed var(--color-primary-glow);
 }
 
 .totalPreview span {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
-    color: var(--color-text-secondary);
+    color: var(--color-text-muted);
+    letter-spacing: 1px;
 }
 
 .totalPreview h3 {
-    font-size: 1.5rem;
+    font-size: 2rem;
     color: var(--color-primary);
+    font-family: var(--font-header);
+    margin-top: 4px;
 }
 
 .formActions {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-xl);
+    gap: 20px;
+    margin-top: 40px;
+    padding-bottom: 60px;
 }
 
 .statusMsg {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: 1rem 1.5rem;
+    gap: 12px;
+    padding: 16px 24px;
     border-radius: var(--radius-md);
-    font-weight: 500;
+    font-weight: 700;
     width: 100%;
+    max-width: 600px;
 }
 
 .success {
-    background: var(--color-success-bg);
-    color: var(--color-success);
-    border: 1px solid var(--color-success);
+    background: var(--color-primary-glow);
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary-glow);
 }
 
 .error {
-    background: var(--color-danger-bg);
-    color: var(--color-danger);
-    border: 1px solid var(--color-danger);
+    background: var(--color-secondary-glow);
+    color: var(--color-secondary);
+    border: 1px solid var(--color-secondary-glow);
 }
 
 .submitBtn {
     width: 100%;
-    max-width: 400px;
-    gap: var(--spacing-sm);
+    max-width: 500px;
+    height: 64px;
+    font-size: 1.1rem !important;
 }
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1024px) {
+    .grid, .gridWide {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
@@ -187,12 +227,12 @@
     .header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 20px;
     }
-}
-
-.gridWide {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
+    .grid, .gridWide {
+        grid-template-columns: 1fr;
+    }
+    .submitBtn {
+        max-width: 100%;
+    }
 }

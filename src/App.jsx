@@ -18,6 +18,59 @@ import InvoiceBuilder from './pages/Billing/InvoiceBuilder';
 import PaymentTracker from './pages/Billing/PaymentTracker';
 import Locations from './pages/Billing/Locations';
 import Parties from './pages/Billing/Parties';
+import React from 'react';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Critical UI Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ 
+          height: '100vh', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          background: 'var(--color-bg-primary)',
+          color: 'var(--color-text-primary)',
+          textAlign: 'center',
+          padding: '20px'
+        }}>
+          <h1 className="heading-xl" style={{ color: 'var(--color-danger)' }}>Something went wrong</h1>
+          <p style={{ margin: '20px 0', opacity: 0.8 }}>We encountered an unexpected error while rendering this page.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '12px 24px',
+              background: 'var(--color-primary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Reload Platform
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const AppRoutes = () => {
   const location = useLocation();
@@ -116,11 +169,13 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

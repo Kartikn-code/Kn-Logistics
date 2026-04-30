@@ -82,7 +82,7 @@ const Locations = () => {
                                 type="text" 
                                 value={newName}
                                 onChange={(e) => setNewName(e.target.value.toUpperCase())}
-                                placeholder="E.G. CHENNAI"
+                                placeholder="Enter Location Name"
                                 disabled={loading}
                             />
                             <Button type="submit" disabled={loading || !newName.trim()}>

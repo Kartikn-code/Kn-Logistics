@@ -41,18 +41,18 @@ const BillingEntry = () => {
     const initialEntryState = {
         dispatchDate: new Date().toISOString().split('T')[0],
         lrNo: '',
-        from_: 'SRIPERUMBUDHUR',
-        to_: 'CHENNAI',
+        from_: '',
+        to_: '',
         poInvoiceNo: '',
-        tons: '',
+        tons: 0,
         truckNo: '',
         dateOfArrival: '',
         dateOfDelivery: '',
-        freight: '',
-        multiPoint: '',
-        loading: '',
-        unloading: '',
-        halting: ''
+        freight: 0,
+        multiPoint: 0,
+        loading: 0,
+        unloading: 0,
+        halting: 0
     };
     const [entryData, setEntryData] = useState(initialEntryState);
 
@@ -62,11 +62,13 @@ const BillingEntry = () => {
     }, [billData.billNo, existingBills]);
 
     const entryTotal = useMemo(() => {
-        const charges = [
-            entryData.freight, entryData.multiPoint, entryData.loading, 
-            entryData.unloading, entryData.halting
-        ];
-        return charges.reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+        return (
+            (entryData.freight || 0) + 
+            (entryData.multiPoint || 0) + 
+            (entryData.loading || 0) + 
+            (entryData.unloading || 0) + 
+            (entryData.halting || 0)
+        );
     }, [entryData]);
 
     useEffect(() => {
@@ -136,9 +138,14 @@ const BillingEntry = () => {
 
     const handleEntryChange = (e) => {
         let { name, value, type } = e.target;
-        if (type === 'text' || type === 'select-one' || e.target.list) {
+        
+        // Handle numeric fields
+        if (type === 'number') {
+            value = value === '' ? 0 : parseFloat(value);
+        } else if (type === 'text' || type === 'select-one' || e.target.list) {
             value = value.toUpperCase();
         }
+        
         setEntryData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
     };
@@ -201,8 +208,8 @@ const BillingEntry = () => {
                     <div className={styles.titleArea}>
                         <FileText className={styles.icon} size={32} />
                         <div>
-                            <h1>LR Billing Entry</h1>
-                            <p>Generate bills and add logistics records</p>
+                            <h1 className="heading-xl">LR Billing Entry</h1>
+                            <p className={styles.subtitle}>Generate bills and add logistics records</p>
                         </div>
                     </div>
                     {existingBillMatch && (
@@ -218,7 +225,7 @@ const BillingEntry = () => {
                     <Card className={styles.sectionCard}>
                         <div className={styles.sectionHeader}>
                             <Plus size={20} />
-                            <h2>Bill Header Information</h2>
+                            <h2 className="heading-md">Bill Header Information</h2>
                         </div>
                         <div className={styles.grid}>
                             <div className={styles.field}>
@@ -228,7 +235,7 @@ const BillingEntry = () => {
                                     name="billNo" 
                                     value={billData.billNo} 
                                     onChange={handleBillChange}
-                                    placeholder="e.g. KN/2026/001"
+                                    placeholder="Enter Bill Number"
                                     className={errors.billNo ? styles.inputError : ''}
                                 />
                                 {errors.billNo && <span className={styles.errorMsg}>{errors.billNo}</span>}
@@ -243,11 +250,11 @@ const BillingEntry = () => {
                         </div>
 
                         {/* Party Selection (Added back as per request for dropdown selection) */}
-                        <div className={styles.field} style={{ marginTop: '1rem' }}>
-                            <label>Select Party (Auto-fills Address & GST)</label>
+                        <div className={styles.partyField}>
+                            <label className="label-text">Select Party (Auto-fills Address & GST)</label>
                             <input 
                                 list="party-list" 
-                                placeholder="Start typing party name..." 
+                                placeholder="Enter party name" 
                                 onChange={handlePartySelect}
                             />
                             <datalist id="party-list">
@@ -260,7 +267,7 @@ const BillingEntry = () => {
                     <Card className={styles.sectionCard}>
                         <div className={styles.sectionHeader}>
                             <MapPin size={20} />
-                            <h2>LR & Dispatch Details</h2>
+                            <h2 className="heading-md">LR & Dispatch Details</h2>
                         </div>
                         <div className={styles.gridWide}>
                             <DatePicker 
@@ -276,7 +283,7 @@ const BillingEntry = () => {
                                     name="lrNo" 
                                     value={entryData.lrNo} 
                                     onChange={handleEntryChange}
-                                    placeholder="Unique LR No"
+                                    placeholder="Enter LR Number"
                                     className={errors.lrNo ? styles.inputError : ''}
                                 />
                                 {errors.lrNo && <span className={styles.errorMsg}>{errors.lrNo}</span>}
@@ -288,7 +295,7 @@ const BillingEntry = () => {
                                     name="from_" 
                                     value={entryData.from_} 
                                     onChange={handleEntryChange} 
-                                    placeholder="Source"
+                                    placeholder="Enter Source"
                                 />
                                 <datalist id="locations">
                                     {locations.map(loc => <option key={loc} value={loc} />)}
@@ -301,7 +308,7 @@ const BillingEntry = () => {
                                     name="to_" 
                                     value={entryData.to_} 
                                     onChange={handleEntryChange} 
-                                    placeholder="Destination"
+                                    placeholder="Enter Destination"
                                 />
                             </div>
                             <div className={styles.field}>
@@ -311,6 +318,7 @@ const BillingEntry = () => {
                                     name="poInvoiceNo" 
                                     value={entryData.poInvoiceNo} 
                                     onChange={handleEntryChange}
+                                    placeholder="Enter PO/Invoice No"
                                     className={errors.poInvoiceNo ? styles.inputError : ''}
                                 />
                                 {errors.poInvoiceNo && <span className={styles.errorMsg}>{errors.poInvoiceNo}</span>}
@@ -322,14 +330,14 @@ const BillingEntry = () => {
                                     name="truckNo" 
                                     value={entryData.truckNo} 
                                     onChange={handleEntryChange}
-                                    placeholder="Vehicle No"
+                                    placeholder="Enter Vehicle Number"
                                     className={errors.truckNo ? styles.inputError : ''}
                                 />
                                 {errors.truckNo && <span className={styles.errorMsg}>{errors.truckNo}</span>}
                             </div>
                             <div className={styles.field}>
                                 <label>Tons</label>
-                                <input type="number" step="0.01" name="tons" value={entryData.tons} onChange={handleEntryChange} />
+                                <input type="number" step="0.01" name="tons" value={entryData.tons} onChange={handleEntryChange} placeholder="Enter Weight" />
                             </div>
                             <DatePicker 
                                 label="Arrival"
@@ -350,30 +358,30 @@ const BillingEntry = () => {
                     <Card className={styles.sectionCard}>
                         <div className={styles.sectionHeader}>
                             <DollarSign size={20} />
-                            <h2>Charges & Financials</h2>
+                            <h2 className="heading-md">Charges & Financials</h2>
                         </div>
                         <div className={styles.grid}>
                             <div className={styles.field}>
                                 <label>Freight (₹)</label>
-                                <input type="number" name="freight" value={entryData.freight} onChange={handleEntryChange} placeholder="0.00" />
+                                <input type="number" name="freight" value={entryData.freight} onChange={handleEntryChange} placeholder="Enter Amount" />
                             </div>
                             <div className={styles.field}>
                                 <label>Multi-Point (₹)</label>
-                                <input type="number" name="multiPoint" value={entryData.multiPoint} onChange={handleEntryChange} placeholder="0.00" />
+                                <input type="number" name="multiPoint" value={entryData.multiPoint} onChange={handleEntryChange} placeholder="Enter Amount" />
                             </div>
                             <div className={styles.field}>
                                 <label>Loading (₹)</label>
-                                <input type="number" name="loading" value={entryData.loading} onChange={handleEntryChange} placeholder="0.00" />
+                                <input type="number" name="loading" value={entryData.loading} onChange={handleEntryChange} placeholder="Enter Amount" />
                             </div>
                         </div>
                         <div className={styles.grid}>
                             <div className={styles.field}>
                                 <label>Unloading (₹)</label>
-                                <input type="number" name="unloading" value={entryData.unloading} onChange={handleEntryChange} placeholder="0.00" />
+                                <input type="number" name="unloading" value={entryData.unloading} onChange={handleEntryChange} placeholder="Enter Amount" />
                             </div>
                             <div className={styles.field}>
                                 <label>Halting (₹)</label>
-                                <input type="number" name="halting" value={entryData.halting} onChange={handleEntryChange} placeholder="0.00" />
+                                <input type="number" name="halting" value={entryData.halting} onChange={handleEntryChange} placeholder="Enter Amount" />
                             </div>
                             <div className={styles.totalPreview}>
                                 <span>Entry Total</span>

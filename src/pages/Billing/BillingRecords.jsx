@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, RotateCcw, ChevronDown, ChevronRight, Edit2, Trash2, FileText, CheckCircle, Clock, AlertCircle, Save, X } from 'lucide-react';
+import { Search, Filter, RotateCcw, ChevronDown, ChevronRight, Edit2, Trash2, FileText, CheckCircle, Clock, AlertCircle, Save, X, Plus, Receipt } from 'lucide-react';
 import PageWrapper from '../../components/UI/PageWrapper';
 import Card from '../../components/UI/Card';
 import Button from '../../components/UI/Button';
@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 const BillingRecords = () => {
     const [bills, setBills] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [expandedBills, setExpandedBills] = useState({}); // { billNo: { entries: [], loading: false } }
+    const [expandedBills, setExpandedBills] = useState({});
     const [filters, setFilters] = useState({
         search: '',
         from: '',
@@ -20,7 +20,6 @@ const BillingRecords = () => {
         status: ''
     });
 
-    // Inline edit state
     const [editingId, setEditingId] = useState(null);
     const [editData, setEditData] = useState({});
 
@@ -79,12 +78,11 @@ const BillingRecords = () => {
         const matchesSearch = !filters.search || 
             bill.billNo.toLowerCase().includes(filters.search.toLowerCase());
         const matchesStatus = !filters.status || bill.status === filters.status;
-        // From/To filtering would ideally happen on entries, but for bills we can check if any entry matches or just filter bills.
-        // For now, filtering bills by status and search.
         return matchesSearch && matchesStatus;
     });
 
-    const handleEditClick = (entry) => {
+    const handleEditClick = (e, entry) => {
+        e.stopPropagation();
         setEditingId(entry.id);
         setEditData({ ...entry });
     };
@@ -93,7 +91,6 @@ const BillingRecords = () => {
         const { name, value } = e.target;
         setEditData(prev => {
             const next = { ...prev, [name]: value };
-            // Recalculate total if charges change
             if (['freight', 'multiPoint', 'loading', 'unloading', 'halting'].includes(name)) {
                 next.total = [
                     next.freight, next.multiPoint, next.loading, 
@@ -108,19 +105,19 @@ const BillingRecords = () => {
         try {
             await updateEntry(editingId, editData);
             setEditingId(null);
-            // Refresh entries for this bill
             const billDetails = await getBillByNo(billNo);
             setExpandedBills(prev => ({
                 ...prev,
                 [billNo]: { entries: billDetails.entries, loading: false }
             }));
-            fetchBills(); // Refresh grand total
+            fetchBills();
         } catch (err) {
             alert(err.message);
         }
     };
 
-    const handleDeleteEntry = async (billNo, id) => {
+    const handleDeleteEntry = async (e, billNo, id) => {
+        e.stopPropagation();
         if (!window.confirm('Delete this entry?')) return;
         try {
             await deleteEntry(id);
@@ -135,7 +132,8 @@ const BillingRecords = () => {
         }
     };
 
-    const handleDeleteBill = async (billNo) => {
+    const handleDeleteBill = async (e, billNo) => {
+        e.stopPropagation();
         if (!window.confirm(`Delete entire Bill #${billNo} and all its entries?`)) return;
         try {
             await deleteBill(billNo);
@@ -147,196 +145,258 @@ const BillingRecords = () => {
 
     const getStatusIcon = (status) => {
         switch (status) {
-            case 'Paid': return <CheckCircle size={14} className={styles.statusPaid} />;
-            case 'Partial': return <Clock size={14} className={styles.statusPartial} />;
-            default: return <AlertCircle size={14} className={styles.statusPending} />;
+            case 'Paid': return <CheckCircle size={14} />;
+            case 'Partial': return <Clock size={14} />;
+            default: return <AlertCircle size={14} />;
         }
     };
 
     return (
         <PageWrapper>
             <div className={styles.container}>
-                <div className={styles.header}>
-                    <h1>Billing Records</h1>
-                    <div className={styles.actions}>
-                        <Button variant="outline" onClick={() => navigate('/billing/entry')}>
-                            <Plus size={16} /> New Entry
-                        </Button>
+                <header className={styles.pageHeader}>
+                    <div className={styles.headerTitle}>
+                        <div className={styles.iconBox}>
+                            <Receipt size={24} />
+                        </div>
+                        <div>
+                            <h1 className="heading-xl">Financial Records</h1>
+                            <p className={styles.subtitle}>Audit logs and settlement history for all clients</p>
+                        </div>
                     </div>
-                </div>
+                    <Button variant="primary" onClick={() => navigate('/billing/entry')}>
+                        <Plus size={18} /> <span className={styles.btnText}>Create Entry</span>
+                    </Button>
+                </header>
 
                 <Card className={styles.filterCard}>
                     <div className={styles.filterGrid}>
-                        <div className={styles.searchBox}>
-                            <Search size={18} />
+                        <div className={styles.searchContainer}>
+                            <Search size={18} className={styles.searchIcon} />
                             <input 
                                 type="text" 
                                 name="search" 
-                                placeholder="Search Bill No, LR No, Truck No..." 
+                                placeholder="Ref No, Vehicle or LR..." 
                                 value={filters.search}
                                 onChange={handleFilterChange}
                             />
                         </div>
-                        <select name="status" value={filters.status} onChange={handleFilterChange}>
-                            <option value="">All Statuses</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Partial">Partial</option>
-                            <option value="Paid">Paid</option>
-                        </select>
-                        <Button variant="secondary" onClick={resetFilters} className={styles.resetBtn}>
-                            <RotateCcw size={16} />
-                            Reset
-                        </Button>
+                        <div className={styles.filterGroup}>
+                            <select name="status" value={filters.status} onChange={handleFilterChange} className={styles.selectInput}>
+                                <option value="">All Settlement Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Partial">Partial</option>
+                                <option value="Paid">Settled</option>
+                            </select>
+                            <Button variant="secondary" onClick={resetFilters} className={styles.resetBtn}>
+                                <RotateCcw size={16} />
+                            </Button>
+                        </div>
                     </div>
                 </Card>
 
-                <div className={styles.tableContainer}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th style={{ width: '40px' }}></th>
-                                <th>Bill No</th>
-                                <th>Date</th>
-                                <th>LR Count</th>
-                                <th>Grand Total</th>
-                                <th>Pending</th>
-                                <th>Status</th>
-                                <th style={{ textAlign: 'right' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <tr><td colSpan="8" className={styles.loadingCell}>Loading records...</td></tr>
-                            ) : filteredBills.length === 0 ? (
-                                <tr><td colSpan="8" className={styles.emptyCell}>No bills found matching your criteria.</td></tr>
-                            ) : filteredBills.map(bill => (
-                                <React.Fragment key={bill.billNo}>
-                                    <tr 
-                                        className={clsx(styles.billRow, expandedBills[bill.billNo] && styles.expandedRow)}
-                                        onClick={() => toggleExpand(bill.billNo)}
-                                    >
-                                        <td>
-                                            {expandedBills[bill.billNo] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                                        </td>
-                                        <td className={styles.billNo}>{bill.billNo}</td>
-                                        <td>{formatDate(bill.date)}</td>
-                                        <td>{bill.entryCount}</td>
-                                        <td className={styles.amount}>₹{bill.grandTotal?.toLocaleString()}</td>
-                                        <td className={clsx(styles.amount, styles.pendingAmount)}>
-                                            ₹{bill.pendingAmount?.toLocaleString()}
-                                        </td>
-                                        <td>
-                                            <span className={clsx(styles.statusBadge, styles[bill.status])}>
-                                                {getStatusIcon(bill.status)}
-                                                {bill.status}
-                                            </span>
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <div className={styles.rowActions} onClick={e => e.stopPropagation()}>
-                                                <Button size="sm" variant="outline" onClick={() => navigate(`/billing/invoice?billNo=${bill.billNo}`)}>
-                                                    <FileText size={14} /> Invoice
-                                                </Button>
-                                                <Button size="sm" variant="outline" className={styles.deleteBtn} onClick={() => handleDeleteBill(bill.billNo)}>
-                                                    <Trash2 size={14} />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {expandedBills[bill.billNo] && (
-                                        <tr className={styles.subEntriesRow}>
-                                            <td colSpan="8">
-                                                <div className={styles.subEntriesContainer}>
-                                                    {expandedBills[bill.billNo].loading ? (
-                                                        <div className={styles.subLoading}>Fetching entries...</div>
-                                                    ) : (
-                                                        <table className={styles.subTable}>
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Dispatch Date</th>
-                                                                    <th>LR No</th>
-                                                                    <th>From</th>
-                                                                    <th>To</th>
-                                                                    <th>Truck No</th>
-                                                                    <th>Tons</th>
-                                                                    <th>Freight</th>
-                                                                    <th>Loading</th>
-                                                                    <th>Unloading</th>
-                                                                    <th>Total</th>
-                                                                    <th>Actions</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {expandedBills[bill.billNo].entries.map(entry => (
-                                                                    <tr key={entry.id}>
-                                                                        {editingId === entry.id ? (
-                                                                            <>
-                                                                                <td><input type="date" name="dispatchDate" value={editData.dispatchDate} onChange={handleEditChange} /></td>
-                                                                                <td><input type="text" name="lrNo" value={editData.lrNo} onChange={handleEditChange} /></td>
-                                                                                <td><input type="text" name="from_" value={editData.from_} onChange={handleEditChange} /></td>
-                                                                                <td><input type="text" name="to_" value={editData.to_} onChange={handleEditChange} /></td>
-                                                                                <td><input type="text" name="truckNo" value={editData.truckNo} onChange={handleEditChange} /></td>
-                                                                                <td><input type="number" name="tons" value={editData.tons} onChange={handleEditChange} /></td>
-                                                                                <td><input type="number" name="freight" value={editData.freight} onChange={handleEditChange} /></td>
-                                                                                <td><input type="number" name="loading" value={editData.loading} onChange={handleEditChange} /></td>
-                                                                                <td><input type="number" name="unloading" value={editData.unloading} onChange={handleEditChange} /></td>
-                                                                                <td className={styles.amount}>₹{editData.total?.toLocaleString()}</td>
-                                                                                <td>
-                                                                                    <div className={styles.editActions}>
-                                                                                        <button onClick={() => handleSaveEntry(bill.billNo)} title="Save"><Save size={16} /></button>
-                                                                                        <button onClick={() => setEditingId(null)} title="Cancel"><X size={16} /></button>
-                                                                                    </div>
-                                                                                </td>
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <td>{formatDate(entry.dispatchDate)}</td>
-                                                                                <td>{entry.lrNo}</td>
-                                                                                <td>{entry.from_}</td>
-                                                                                <td>{entry.to_}</td>
-                                                                                <td>{entry.truckNo}</td>
-                                                                                <td>{entry.tons}</td>
-                                                                                <td>₹{entry.freight}</td>
-                                                                                <td>₹{entry.loading}</td>
-                                                                                <td>₹{entry.unloading}</td>
-                                                                                <td className={styles.amount}>₹{entry.total?.toLocaleString()}</td>
-                                                                                <td>
-                                                                                    <div className={styles.subRowActions}>
-                                                                                        <button onClick={() => handleEditClick(entry)}><Edit2 size={14} /></button>
-                                                                                        <button onClick={() => handleDeleteEntry(bill.billNo, entry.id)}><Trash2 size={14} /></button>
-                                                                                    </div>
-                                                                                </td>
-                                                                            </>
-                                                                        )}
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                            <tfoot>
-                                                                <tr>
-                                                                    <td colSpan="9" style={{ textAlign: 'right', fontWeight: 'bold' }}>Bill Subtotal:</td>
-                                                                    <td className={styles.amount} style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                                                                        ₹{expandedBills[bill.billNo].entries.reduce((sum, e) => sum + (e.total || 0), 0).toLocaleString()}
-                                                                    </td>
-                                                                    <td></td>
-                                                                </tr>
-                                                            </tfoot>
-                                                        </table>
-                                                    )}
+                <div className={styles.recordsList}>
+                    {/* Desktop View */}
+                    <div className={styles.desktopContainer}>
+                        <table className={styles.mainTable}>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '60px' }}></th>
+                                    <th className="label-text">Identifier</th>
+                                    <th className="label-text">Date</th>
+                                    <th className="label-text">Logs</th>
+                                    <th className="label-text">Settlement</th>
+                                    <th className="label-text">Balance</th>
+                                    <th className="label-text">Status</th>
+                                    <th style={{ textAlign: 'right' }} className="label-text">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr><td colSpan="8" className={styles.loadingCell}>Syncing data...</td></tr>
+                                ) : filteredBills.length === 0 ? (
+                                    <tr><td colSpan="8" className={styles.emptyCell}>No matching records found.</td></tr>
+                                ) : filteredBills.map(bill => (
+                                    <React.Fragment key={bill.billNo}>
+                                        <tr 
+                                            className={clsx(styles.billRow, expandedBills[bill.billNo] && styles.expandedRow)}
+                                            onClick={() => toggleExpand(bill.billNo)}
+                                        >
+                                            <td>
+                                                <div className={styles.expandIcon}>
+                                                    {expandedBills[bill.billNo] ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                                                </div>
+                                            </td>
+                                            <td className={styles.billId}>{bill.billNo}</td>
+                                            <td className={styles.dateCell}>{formatDate(bill.date)}</td>
+                                            <td><span className={styles.countBadge}>{bill.entryCount} Entries</span></td>
+                                            <td className="value-text">₹{bill.grandTotal?.toLocaleString()}</td>
+                                            <td className={clsx("value-text", styles.pendingVal)}>
+                                                ₹{bill.pendingAmount?.toLocaleString()}
+                                            </td>
+                                            <td>
+                                                <span className={clsx(styles.statusBadge, styles[bill.status])}>
+                                                    {getStatusIcon(bill.status)}
+                                                    {bill.status}
+                                                </span>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className={styles.rowActions} onClick={e => e.stopPropagation()}>
+                                                    <Button size="sm" variant="outline" onClick={() => navigate(`/billing/invoice?billNo=${bill.billNo}`)}>
+                                                        <FileText size={14} />
+                                                    </Button>
+                                                    <Button size="sm" variant="outline" className={styles.deleteBtn} onClick={(e) => handleDeleteBill(e, bill.billNo)}>
+                                                        <Trash2 size={14} />
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>
-                                    )}
-                                </React.Fragment>
-                            ))}
-                        </tbody>
-                    </table>
+                                        {expandedBills[bill.billNo] && (
+                                            <tr className={styles.expandedContentRow}>
+                                                <td colSpan="8">
+                                                    <div className={styles.expandedWrapper}>
+                                                        {expandedBills[bill.billNo].loading ? (
+                                                            <div className={styles.nestedLoading}>Decompressing logs...</div>
+                                                        ) : (
+                                                            <div className={styles.nestedTableContainer}>
+                                                                <table className={styles.nestedTable}>
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th className="label-text">Date</th>
+                                                                            <th className="label-text">LR No</th>
+                                                                            <th className="label-text">Route</th>
+                                                                            <th className="label-text">Vehicle</th>
+                                                                            <th className="label-text">Weight</th>
+                                                                            <th className="label-text">Freight</th>
+                                                                            <th className="label-text">Total</th>
+                                                                            <th className="label-text">Actions</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {expandedBills[bill.billNo].entries.map(entry => (
+                                                                            <tr key={entry.id}>
+                                                                                {editingId === entry.id ? (
+                                                                                    <>
+                                                                                        <td><input type="date" name="dispatchDate" value={editData.dispatchDate} onChange={handleEditChange} className={styles.editInput} /></td>
+                                                                                        <td><input type="text" name="lrNo" value={editData.lrNo} onChange={handleEditChange} className={styles.editInput} /></td>
+                                                                                        <td>
+                                                                                            <div className={styles.routeEdit}>
+                                                                                                <input type="text" name="from_" value={editData.from_} onChange={handleEditChange} placeholder="From" />
+                                                                                                <input type="text" name="to_" value={editData.to_} onChange={handleEditChange} placeholder="To" />
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        <td><input type="text" name="truckNo" value={editData.truckNo} onChange={handleEditChange} className={styles.editInput} /></td>
+                                                                                        <td><input type="number" name="tons" value={editData.tons} onChange={handleEditChange} className={styles.editInput} /></td>
+                                                                                        <td><input type="number" name="freight" value={editData.freight} onChange={handleEditChange} className={styles.editInput} /></td>
+                                                                                        <td className="value-text">₹{editData.total?.toLocaleString()}</td>
+                                                                                        <td>
+                                                                                            <div className={styles.saveActions}>
+                                                                                                <button onClick={() => handleSaveEntry(bill.billNo)} className={styles.saveBtn}><Save size={18} /></button>
+                                                                                                <button onClick={() => setEditingId(null)} className={styles.cancelBtn}><X size={18} /></button>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <td>{formatDate(entry.dispatchDate)}</td>
+                                                                                        <td className={styles.lrCell}>{entry.lrNo}</td>
+                                                                                        <td className={styles.routeCellSmall}>{entry.from_} → {entry.to_}</td>
+                                                                                        <td className={styles.vehicleSmall}>{entry.truckNo}</td>
+                                                                                        <td>{entry.tons} T</td>
+                                                                                        <td className="value-text">₹{entry.freight?.toLocaleString()}</td>
+                                                                                        <td className="value-text">₹{entry.total?.toLocaleString()}</td>
+                                                                                        <td>
+                                                                                            <div className={styles.nestedRowActions}>
+                                                                                                <button onClick={(e) => handleEditClick(e, entry)} className={styles.editBtn}><Edit2 size={14} /></button>
+                                                                                                <button onClick={(e) => handleDeleteEntry(e, bill.billNo, entry.id)} className={styles.nestedDeleteBtn}><Trash2 size={14} /></button>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                    </>
+                                                                                )}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile View - Card based UI */}
+                    <div className={styles.mobileContainer}>
+                        {loading ? (
+                            <div className={styles.mobileLoading}>Syncing data...</div>
+                        ) : filteredBills.length === 0 ? (
+                            <div className={styles.mobileEmpty}>No records found.</div>
+                        ) : filteredBills.map(bill => (
+                            <div key={bill.billNo} className={styles.mobileCard}>
+                                <div className={styles.cardHeaderMobile} onClick={() => toggleExpand(bill.billNo)}>
+                                    <div className={styles.cardTopMobile}>
+                                        <span className={styles.billIdMobile}>#{bill.billNo}</span>
+                                        <span className={clsx(styles.statusBadge, styles[bill.status])}>
+                                            {bill.status}
+                                        </span>
+                                    </div>
+                                    <div className={styles.cardMidMobile}>
+                                        <div className={styles.cardValGroup}>
+                                            <span className="label-text">Total</span>
+                                            <span className="value-text">₹{bill.grandTotal?.toLocaleString()}</span>
+                                        </div>
+                                        <div className={styles.cardValGroup}>
+                                            <span className="label-text">Pending</span>
+                                            <span className={clsx("value-text", styles.pendingVal)}>₹{bill.pendingAmount?.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.cardFooterMobile}>
+                                        <span className={styles.dateMobile}>{formatDate(bill.date)}</span>
+                                        <div className={styles.expandTrigger}>
+                                            {expandedBills[bill.billNo] ? 'Hide Details' : 'View Details'}
+                                            {expandedBills[bill.billNo] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {expandedBills[bill.billNo] && (
+                                    <div className={styles.mobileExpanded}>
+                                        {expandedBills[bill.billNo].loading ? (
+                                            <div className={styles.nestedLoading}>Fetching...</div>
+                                        ) : (
+                                            <div className={styles.nestedListMobile}>
+                                                {expandedBills[bill.billNo].entries.map(entry => (
+                                                    <div key={entry.id} className={styles.nestedEntryMobile}>
+                                                        <div className={styles.nestedTopMobile}>
+                                                            <span className={styles.lrMobile}>LR: {entry.lrNo}</span>
+                                                            <span className="value-text">₹{entry.total?.toLocaleString()}</span>
+                                                        </div>
+                                                        <div className={styles.nestedMidMobile}>
+                                                            <span className={styles.routeMobile}>{entry.from_} → {entry.to_}</span>
+                                                            <span className={styles.vehicleMobile}>{entry.truckNo}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <div className={styles.mobileActions}>
+                                                    <Button size="sm" variant="outline" onClick={() => navigate(`/billing/invoice?billNo=${bill.billNo}`)}>
+                                                        Generate Invoice
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </PageWrapper>
     );
 };
-
-const Plus = ({ size }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-);
 
 export default BillingRecords;
