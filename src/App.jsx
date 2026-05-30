@@ -18,6 +18,7 @@ import InvoiceBuilder from './pages/Billing/InvoiceBuilder';
 import PaymentTracker from './pages/Billing/PaymentTracker';
 import Locations from './pages/Billing/Locations';
 import Parties from './pages/Billing/Parties';
+import Landing from './pages/Landing';
 import React from 'react';
 
 class ErrorBoundary extends React.Component {
@@ -79,81 +80,75 @@ const AppRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* If not authenticated, the only accessible routes are /login */}
+        {/* Landing Page is the root entry point */}
+        <Route path="/" element={<Landing />} />
+        
+        {/* Authentication */}
         <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
         
-        <Route path="/" element={<Layout />}>
-          {/* Index route redirects to dashboard if logged in, otherwise login */}
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          
-          <Route path="dashboard" element={
+        {/* Protected Dashboard Routes - Using Layout as a wrapper */}
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={
             <ProtectedRoute>
               <PageWrapper><Dashboard /></PageWrapper>
             </ProtectedRoute>
           } />
 
-          <Route path="admin" element={
+          <Route path="/admin" element={
             <ProtectedRoute>
               <PageWrapper><Admin /></PageWrapper>
             </ProtectedRoute>
           } />
           
-          <Route path="services" element={
+          <Route path="/services" element={
             <ProtectedRoute>
               <PageWrapper><Services /></PageWrapper>
             </ProtectedRoute>
           } />
           
-          <Route path="contact" element={
+          <Route path="/contact" element={
             <ProtectedRoute>
               <PageWrapper><Contact /></PageWrapper>
             </ProtectedRoute>
           } />
-
-          {/* Signup is disabled for security - Admin can create users in DB */}
-          {/* <Route path="signup" element={
-            <ProtectedRoute>
-              <PageWrapper><Signup /></PageWrapper>
-            </ProtectedRoute>
-          } /> */}
           
-          <Route path="payments" element={
+          <Route path="/payments" element={
             <ProtectedRoute>
               <PageWrapper><Payments /></PageWrapper>
             </ProtectedRoute>
           } />
           
-          <Route path="billing/entry" element={
+          <Route path="/billing/entry" element={
             <ProtectedRoute>
               <BillingEntry />
             </ProtectedRoute>
           } />
           
-          <Route path="billing/records" element={
+          <Route path="/billing/records" element={
             <ProtectedRoute>
               <BillingRecords />
             </ProtectedRoute>
           } />
           
-          <Route path="billing/invoice" element={
+          <Route path="/billing/invoice" element={
             <ProtectedRoute>
               <InvoiceBuilder />
             </ProtectedRoute>
           } />
           
-          <Route path="billing/payments-tracker" element={
+          <Route path="/billing/payments-tracker" element={
             <ProtectedRoute>
               <PaymentTracker />
             </ProtectedRoute>
           } />
 
-          <Route path="billing/locations" element={
+          <Route path="/billing/locations" element={
             <ProtectedRoute>
               <Locations />
             </ProtectedRoute>
           } />
 
-          <Route path="billing/parties" element={
+          <Route path="/billing/parties" element={
             <ProtectedRoute>
               <Parties />
             </ProtectedRoute>

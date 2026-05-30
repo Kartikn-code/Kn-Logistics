@@ -50,10 +50,10 @@ const Login = () => {
                         
                         <div className={styles.storyText}>
                             <h2 className="heading-xl">
-                                Intelligence in <br />
-                                <span className={styles.highlight}>Motion.</span>
+                                Regional <br />
+                                <span className={styles.highlight}>Excellence.</span>
                             </h2>
-                            <p className={styles.subtitle}>Premium supply chain orchestration and real-time fleet analytics for the modern era.</p>
+                            <p className={styles.subtitle}>Premium open body truck orchestration and real-time fleet analytics across Tamil Nadu.</p>
                         </div>
 
                         {/* Metrics Section */}
@@ -76,14 +76,14 @@ const Login = () => {
 
                         <div className={styles.features}>
                             <FeatureItem 
-                                icon={<Globe size={22} />}
-                                title="Global reach"
-                                desc="Seamless orchestration across international borders and regional hubs."
+                                icon={<MapPin size={22} />}
+                                title="Tamil Nadu Only"
+                                desc="Hyper-local focus on the industrial hubs and delivery networks within the state."
                             />
                             <FeatureItem 
-                                icon={<Shield size={22} />}
-                                title="Zero-Trust security"
-                                desc="Enterprise-grade encryption for all operational data and transit logs."
+                                icon={<Truck size={22} />}
+                                title="Open Body Fleet"
+                                desc="Specialized transport solutions for cargo requiring open-top accessibility."
                             />
                         </div>
 

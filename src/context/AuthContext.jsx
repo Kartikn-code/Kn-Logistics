@@ -7,26 +7,11 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const verifyToken = async () => {
-            const token = localStorage.getItem('auth_token');
-            if (token) {
-                try {
-                    const response = await fetch('/api/verify', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (response.ok) {
-                        setIsAuthenticated(true);
-                    } else {
-                        localStorage.removeItem('auth_token');
-                        setIsAuthenticated(false);
-                    }
-                } catch (error) {
-                    setIsAuthenticated(false);
-                }
-            }
-            setLoading(false);
-        };
-        verifyToken();
+        // MANDATORY LOGOUT: Every time the application is accessed/refreshed,
+        // we clear the session to prevent running on cache.
+        localStorage.removeItem('auth_token');
+        setIsAuthenticated(false);
+        setLoading(false);
     }, []);
 
     const login = async (username, password) => {
